@@ -1,0 +1,9 @@
+screeninfo
+wxPython
+pyGoogleSearch
+googleimagedownloader
+psutil
+PyYAML
+fastutils
+bizerror
+decutils
