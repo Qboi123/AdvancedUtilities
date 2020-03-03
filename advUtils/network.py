@@ -1,4 +1,4 @@
-from typing import Union, List, Dict, Optional, Callable
+from typing import Union, Callable
 
 import wx
 import wx.adv
@@ -22,7 +22,7 @@ CLIENT = "client"
 SERVER = "server"
 
 
-class Downloader():
+class Downloader(object):
     def __init__(self, url, file):
         # InfoNone
         self._url = url
@@ -64,7 +64,7 @@ class Downloader():
             total2 = self.totalDownloaded
             self.spd = (total2 - total1) * 2
             try:
-                a = self.fileTotalbytes / spd
+                a = self.fileTotalbytes / self.spd
                 b = self._time.gmtime(a)
             except ZeroDivisionError:
                 a = -1
@@ -468,9 +468,9 @@ if __name__ == '__main__':
             pak.send(b)
             pak.send(list(a))
 
-    server = Server(36673)
-    server.runner = s_runner
-    server.start()
-    client = Client("127.0.0.1", 36673)
-    client.runner = c_runner
-    client.start()
+    server_ = Server(36673)
+    server_.runner = s_runner
+    server_.start()
+    client_ = Client("127.0.0.1", 36673)
+    client_.runner = c_runner
+    client_.start()
