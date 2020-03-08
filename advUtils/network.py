@@ -1,9 +1,12 @@
 from typing import Union, Callable
+import win32net
 
 import wx
 import wx.adv
 
 # Message types
+from advUtils.filesystem import File
+
 INFO = "info"
 WARN = "warn"
 WARNING = "warn"
@@ -20,6 +23,22 @@ STATE_LAUNCH = "state_launch"
 # Connection types
 CLIENT = "client"
 SERVER = "server"
+
+
+class _Utils:
+    @staticmethod
+    def remove_duplicates(list_: list) -> list:
+        index = 0
+        already_defined = []
+        while index < len(list_):
+            if already_defined:
+                if list_[index] in already_defined:
+                    del list_[index]
+                    continue
+            already_defined.append(list_[index])
+            index += 1
+        return list_
+
 
 
 class Downloader(object):
@@ -49,6 +68,15 @@ class Downloader(object):
         self._system = advUtils.system
         self._threading = threading
         self.spd = 0
+
+        # Status
+        self.title = f"Initializing..."
+        self.message1 = f""
+        self.message2 = f""
+        self.message3 = f""
+        self.message4 = f""
+        self.status_list = [self.title, self.message1, self.message2, self.message3, self.message4]
+        self.status = str.join("\n", self.status_list)
 
     def speed(self):
         """
@@ -94,55 +122,50 @@ class Downloader(object):
         data_blocks: list = []
         total: int = 0
 
-        # Frame.SetWindowStyle(wx.MINIMIZE | wx.FRAME_NO_TASKBAR)
-
-        # Cancel = wx.Button(Frame, -1, "Cancel")
-        # Cancel.Bind(wx.EVT_BUTTON, lambda: app.Destroy())
-
-        # filename.destroy()
-        # file_path.destroy()
-        # Input.Destroy()
-
-        # load = wx.ProgressDialog("Downloading...", "Download from "+Input.GetValue(), maximum=100)
-
-        # load = ttk.Progressbar(root, length=750, max=MAX)
-        # load.config(value=0)
-        # load.pack()
-        # Frame.Update()
+        file = File(self._file)
 
         self._system.StoppableThread(target=lambda: self.speed(), name="SpeedThread").start()
 
         while True:
-            block = url_request.read(1024)
+            block = url_request.read()
             data_blocks.append(block)
             total += len(block)
             _hash = ((60 * self.totalDownloaded) // self.fileTotalbytes)
             # Frame.Update()
             # Panel.Update()
             # Down.Update()
-            f"""Downloading...
-Downloading of \"{self._url.split("/")[-1]}\" is {str(int(self.totalDownloaded / self.fileTotalbytes * 100))}% complete.
+            _temp0002 = self._url.split('/')[-1]
+            _temp0003 = str(int(self.totalDownloaded / self.fileTotalbytes * 100))
 
-{str(total)} of {str(self.fileTotalbytes)}
-With {str(self.spd)} bytes/sec | {h}:{m}:{s} remaining."""
+            self.title = f"Downloading..."
+            self.message1 = f"Downloading of \"{_temp0002} is {_temp0003}% complete."
+            self.message2 = f""
+            self.message3 = f"{str(total)} of {str(self.fileTotalbytes)}"
+            self.message4 = f"With {str(self.spd)} bytes/sec | {h}:{m}:{s} remaining."
+            self.status_list = [self.title, self.message1, self.message2, self.message3, self.message4]
+            self.status = str.join("\n", self.status_list)
 
             if not len(block):
                 self.downloadActive = False
                 break
 
-        data = b''.join(data_blocks)  # had to add b because I was joining bytes not strings
+            fd = file.open("ab")
+            fd.write(block)
+            fd.close()
+
+        # data = b''.join(data_blocks)  # had to add b because I was joining bytes not strings
         url_request.close()
 
-        with open("C:\\Users\\" + self._os.getlogin() + "\\Downloads\\"+self._url.split("/")[-1], "wb") as f:
-            f.write(data)
+        # with open("C:\\Users\\" + self._os.getlogin() + "\\Downloads\\" + self._url.split("/")[-1], "wb") as f:
+        #     f.write(data)
 
         # Frame.SetWindowStyle(wx.DEFAULT_FRAME_STYLE)
         # load.Destroy()
         # Frame.Show(True)
         notify = wx.adv.NotificationMessage(
-                title="Download successful",
-                message="Your download is complete!\n\nCheck out in your downloads folder.",
-                parent=None, flags=wx.ICON_INFORMATION)
+            title="Download successful",
+            message="Your download is complete!\n\nCheck out in your downloads folder.",
+            parent=None, flags=wx.ICON_INFORMATION)
         notify.Show(timeout=0)  # 1 for short timeout, 100 for long timeout
 
 
@@ -441,22 +464,133 @@ class PackageSystem(object):
         return PackageDecoder(data).get_decoded()
 
 
+class CryptedPackageSystem(PackageSystem):
+    def __init__(self, conn):
+        super(CryptedPackageSystem, self).__init__(conn)
+
+    @staticmethod
+    def _encrypt(b, key):
+        from Crypto.Cipher import ARC4
+
+        obj = ARC4.new(key.encode())
+        return obj.encrypt(b)
+
+    @staticmethod
+    def _decrypt(b, key):
+        from Crypto.Cipher import ARC4
+
+        obj2 = ARC4.new(key.encode())
+        return obj2.decrypt(b)
+
+    def send_c(self, o, key):
+        _, data = PackageEncoder(o).get_encoded()
+        # print(data, key)
+        data = self._encrypt(data, key)
+        length = len(data)
+
+        len_str = str(length)
+
+        for _ in range(32, len(len_str), -1):
+            len_str = "0" + len_str
+
+        # print(len(len_str))
+        # print(len_str)
+
+        self.conn.send(len_str.encode())
+        self.conn.send(data)
+
+    def recv_c(self, key):
+        try:
+            length = self.conn.recv(32)
+            data = self.conn.recv(int(length.decode()))
+        except ValueError:
+            return None
+        return PackageDecoder(self._decrypt(data, key)).get_decoded()
+
+
+class NetworkInfo(object):
+    localIPv4 = "127.0.0.1"
+    localIPv6 = "::1"
+
+    @staticmethod
+    def get_external_ip(ext_ip_url='https://ident.me'):
+        import urllib.request
+        external_ip = urllib.request.urlopen(ext_ip_url).read().decode('utf8')
+        return external_ip
+
+    @staticmethod
+    def get_internal_ip():
+        import socket
+        ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2]
+                           if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)),
+                                                                 s.getsockname()[0], s.close()) for s in
+                                                                [socket.socket(socket.AF_INET,
+                                                                               socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
+        return ip
+
+    @staticmethod
+    def connect_wifi(ssid, password):
+        raise NotImplementedError("NetworkInfo(...).connect_wifi(...) is not yet created")
+
+    @staticmethod
+    def list_wifi_ssids():
+        import pywifi
+
+        wifi = pywifi.PyWiFi()
+        interfaces = wifi.interfaces()
+        # print(interfaces)
+        interfaces[0].scan()
+        # interfaces[0].connect()
+        results = interfaces[0].scan_results()
+        # print(results)
+        # print(results[0].ssid)
+        ssids = [result.ssid for result in results]
+        ssids = _Utils.remove_duplicates(ssids)
+        # print(ssids)
+        return ssids
+
+    @staticmethod
+    def get_personal_shares():
+        WindowsShares(NetworkInfo.get_internal_ip())
+
+    @staticmethod
+    def add_personal_share():
+        win32net.NetShareAdd()
+
+    @staticmethod
+    def get_network_interfaces():
+        import pywifi
+
+        wifi = pywifi.PyWiFi()
+        interfaces = wifi.interfaces()
+        return interfaces
+
+
+class WindowsShares(object):
+    def __init__(self, ip):
+        self._ip = ip
+
+    def get_shares(self):
+        win32net.NetShareEnum(self._ip)
+
+
 if __name__ == '__main__':
     # a_ = PackageSender(None, {"Hallo"})
     # a_.send()
 
     def c_runner(conn, secret):
         pak = PackageSystem(conn)
-        while True:
+        for i in range(5):
             recieved = pak.recv()
             print(f"Recieved Type: {type(recieved)}")
             print(f"Recieved: {recieved}")
+
 
     def s_runner(conn, secret):
         import random
 
         pak = PackageSystem(conn)
-        while True:
+        for i in range(5):
             b = []
             for _ in range(16):
                 b.append(chr(random.randint(64, 96)))
@@ -467,6 +601,12 @@ if __name__ == '__main__':
             pak.send(a)
             pak.send(b)
             pak.send(list(a))
+
+    print(NetworkInfo.get_external_ip())
+    print(NetworkInfo.get_internal_ip())
+    print(NetworkInfo.list_wifi_ssids())
+
+    print(win32net.NetShareEnum(NetworkInfo.get_internal_ip()))
 
     server_ = Server(36673)
     server_.runner = s_runner

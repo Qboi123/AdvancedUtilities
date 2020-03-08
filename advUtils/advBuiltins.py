@@ -86,13 +86,13 @@ class AdvFloat(float):
         return AdvFloat(self.__sub__(value))
 
     def to_string(self):
-        return self.__str__()
+        return AdvString(self.__str__())
 
     def to_boolean(self):
-        return self.__bool__()
+        return AdvBoolean(self.__bool__())
 
     def to_integer(self):
-        return self.__int__()
+        return AdvInteger(self.__int__())
 
     def representation(self):
         return self.__repr__()
@@ -195,7 +195,7 @@ class AdvFloat(float):
 
     def frexp(self):
         import math
-        return math.frexp(self)
+        return AdvTuple(math.frexp(self))
 
     def ldexp(self, i: int):
         import math
@@ -227,10 +227,10 @@ class AdvFloat(float):
 
     def modf(self):
         import math
-        return math.modf(self)
+        return AdvTuple(math.modf(self))
 
     def mod(self, x):
-        self.__mod__(x)
+        return AdvFloat(self.__mod__(x))
 
     def power(self, y):
         import math
@@ -301,7 +301,7 @@ class AdvInteger(int):
         return AdvInteger(self.__neg__())
 
     def positive(self):
-        return self.__pos__()
+        return AdvInteger(self.__pos__())
 
     def square(self):
         import math
@@ -333,7 +333,7 @@ class AdvInteger(int):
 
     def ceil(self):
         import math
-        return AdvFloat(math.ceil(self))
+        return AdvInteger(math.ceil(self))
     
     def cos(self):
         import math
@@ -467,7 +467,7 @@ class AdvInteger(int):
         return AdvBytes(pickle.dumps(self))
 
     def equals(self, other: int):
-        return AdvInteger(self.__eq__(other))
+        return AdvBoolean(self.__eq__(other))
 
 
 class AdvBoolean(int):
@@ -744,6 +744,11 @@ def adv_input(prompt: str = "", return_type: Type[Union[int, str, bool, float, b
     return return_type(a)
 
 
+advinput = adv_input
+advInput = adv_input
+AdvInput = adv_input
+
+
 if __name__ == '__main__':
     some_int = AdvInteger(9)
     print(some_int.square().square().square().square().square().square().square().square().square().square().square())
@@ -757,7 +762,7 @@ if __name__ == '__main__':
     print(some_hex.pickle())
 
     import pickle
-    with open("test.dat") as file:
+    with open("test.dat", "w+") as file:
         pickle.dump({(345, 35): lambda: str()}, file)
     dit_is_een_var = pickle.dumps({(345, 35): lambda: str()})
 

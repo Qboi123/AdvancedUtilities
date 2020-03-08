@@ -1,0 +1,18 @@
+# This is a TOML document.
+
+title = "TOML Example"
+
+[dictionary]
+string = "This is a text"
+date = 2009-04-09T23:17:28+05:30  # First class dates
+
+list = [ 25515 ]
+integer = 20
+float = 205.358
+boolean = true
+
+# Line breaks are OK when inside arrays
+hosts = [
+  "alpha",
+  "omega"
+]

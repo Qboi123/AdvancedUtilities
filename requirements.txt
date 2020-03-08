@@ -1,3 +1,5 @@
+comtypes
+pywifi
 screeninfo
 wxPython
 pyGoogleSearch
@@ -7,3 +9,4 @@ PyYAML
 fastutils
 bizerror
 decutils
+toml

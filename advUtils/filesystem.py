@@ -1,7 +1,23 @@
 import io
-from typing import Optional, Tuple, List, Union
+from typing import Optional, Tuple, List, Union, Iterable, NoReturn
+import platform
+
+# print(platform.system())
+
+if platform.system().lower() == "windows":
+    from win32comext.shell import shell, shellcon
+    PLATFORM = "Platform::Windows"
+else:
+    PLATFORM = "Platform::Other"
 
 from advUtils.system import PythonPath
+
+PLATFORM_WINDOWS = "Platform::Windows"
+PLATFORM_OTHER = "Platform::Other"
+
+WINDOW_MINIMIZED = 7
+WINDOW_MAXIMIZED = 3
+WINDOW_NORMAL = 1
 
 
 class Directory(object):
@@ -149,8 +165,8 @@ class File(object):
         """
 
         if not self._fileOpen:
-            self._fd = open(self.path, mode)
             self._fileOpen = True
+            return open(self.path, mode)
         else:
             raise OSError(f"File {self.path} already opened")
 
@@ -274,16 +290,16 @@ class File(object):
         :return:
         """
 
-        self.open(mode="r+b")
-        self._fd.seek(offset)
+        fd = self.open(mode="r+b")
+        fd.seek(offset)
 
         if type(data) == str:
             data: str
-            self._fd.write(data.encode())
+            fd.write(data.encode())
         elif type(data) in [bytes, bytearray]:
-            self._fd.write(data)
-        elif type(data) in [int, float, bool]:
-            self._fd.write(str(data).encode())
+            fd.write(data)
+        fd.close()
+        self._fileOpen = False
 
     def read_at(self, offset: int, size: int = 1) -> bytes:
         """
@@ -309,16 +325,15 @@ class File(object):
         """
 
         if self.exists():
-            raise IOError("File already exists! Creating a file is only possible when the file don't exists")
+            raise IOError("File already exists! Creating a file is only possible when the file doesn't exists")
 
         if self._fileOpen:
-            raise IOError("File was already opened! Currently you can only a file if the file wasn't open")
+            raise IOError("File was already opened! Currently you can only create a file if the file wasn't open")
 
-        self.open("w+")
-
-        self._fd.seek(size - 1)
-        self._fd.write(chr(0))
-        self.close()
+        fd = self.open("w+")
+        fd.seek(size - 1)
+        fd.write(chr(0))
+        fd.close()
 
     def remove(self):
         self._os.remove(self.path)
@@ -342,6 +357,9 @@ class File(object):
 
     def get_size(self):
         return self._os.path.getsize(self.path)
+
+    readat = read_at
+    writeat = write_at
 
 
 class ExecutableFile(File):
@@ -723,7 +741,7 @@ class ZippedFile(object):
 
     def read(self, size=None):
         with self.zipFormatFile.zipfile.open(self.zipFormatFile.get_fp(self.path)[:], "r") as file:
-            data = file.read(size)
+            data = file.read()
         return data
 
     def readline(self, size=None):
@@ -1080,3 +1098,285 @@ class NZTFile(ZipArchive):
 
     def close(self):
         self.zipFormatFile.close()
+
+
+class TextFile(File):
+    def __init__(self, path):
+        super(TextFile, self).__init__(path)
+
+    def read(self, size=None) -> str:
+        with open(self.path, "r") as file:
+            data = file.read(size)
+            file.close()
+        return data
+
+    def readline(self, limit=None) -> str:
+        with open(self.path, "r") as file:
+            data = file.readline(limit)
+            file.close()
+        return data
+
+    def readlines(self, hint=None) -> List[str]:
+        with open(self.path, "r") as file:
+            data = file.readlines(hint)
+            file.close()
+        return data
+
+    def read_at(self, offset: int, size: int = 1) -> str:
+        """
+        Reads data with the given offset and the given size from the file. Returns str
+
+        :param offset:
+        :param size:
+        :returns bytes:
+        """
+
+        self.open(mode="r+b")
+        self._fd.seek(offset)
+
+        return self._fd.read(size).decode()
+
+    def write(self, o: str = "") -> NoReturn:
+        with open(self.path, "w") as file:
+            file.write(o)
+            file.close()
+
+    def writelines(self, lines: Iterable[str]) -> NoReturn:
+        with open(self.path, "w") as file:
+            file.writelines(lines)
+            file.close()
+
+    def write_at(self, offset: int, data: str) -> NoReturn:
+        """
+        Writes data on the given offset, non-string or non-bytes data will use repr()
+
+        :param offset:
+        :param data:
+        :return:
+        """
+
+        self.open(mode="w+b")
+        self._fd.seek(offset)
+
+        data: str
+        self._fd.write(data.encode())
+
+    readat = read_at
+    writeat = write_at
+
+
+class BinaryFile(File):
+    def __init__(self, path):
+        super(BinaryFile, self).__init__(path)
+
+    def read(self, size=None) -> bytes:
+        with open(self.path, "rb") as file:
+            data = file.read(size)
+            file.close()
+        return data
+
+    def readline(self, limit=None) -> bytes:
+        with open(self.path, "rb") as file:
+            data = file.readline(limit)
+            file.close()
+        return data
+
+    def readlines(self, hint=None) -> List[bytes]:
+        with open(self.path, "rb") as file:
+            data = file.readlines(hint)
+            file.close()
+        return data
+
+    def read_at(self, offset: int, size: int = 1) -> bytes:
+        """
+        Reads data with the given offset and the given size from the file. Returns str
+
+        :param offset:
+        :param size:
+        :returns bytes:
+        """
+
+        self.open(mode="r+b")
+        self._fd.seek(offset)
+
+        return self._fd.read(size)
+
+    def write(self, o: bytes = b"") -> NoReturn:
+        with open(self.path, "wb") as file:
+            file.write(o)
+            file.close()
+
+    def writelines(self, lines: Iterable[bytes]) -> NoReturn:
+        with open(self.path, "wb") as file:
+            file.writelines(lines)
+            file.close()
+
+    def write_at(self, offset: int, data: bytes) -> NoReturn:
+        """
+        Writes data on the given offset, non-string or non-bytes data will use repr()
+
+        :param offset:
+        :param data:
+        :return:
+        """
+
+        self.open(mode="w+b")
+        self._fd.seek(offset)
+
+        if type(data) == str:
+            data: str
+            self._fd.write(data.encode())
+        elif type(data) in [bytes, bytearray]:
+            self._fd.write(data)
+        elif type(data) in [int, float, bool]:
+            self._fd.write(str(data).encode())
+
+    readat = read_at
+    writeat = write_at
+
+
+class TomlFile(File):
+    def __init__(self, path):
+        super(TomlFile, self).__init__(path)
+
+        import toml
+        self._toml = toml
+
+    def read(self, *args) -> dict:
+        if args:
+            raise ValueError("TomlFile(...).read(...) doen't take any arguments")
+
+        with open(self.path, "r") as file:
+            data = self._toml.loads(file.read())
+        return data
+
+    def write(self, o: dict) -> NoReturn:
+        with open(self.path, "w") as file:
+            file.write(self._toml.dumps(o))
+
+
+class WindowsShortcut(File):
+    if PLATFORM != PLATFORM_WINDOWS:
+        raise OSError("WindowsShortcut(...) is Windows-only")
+
+    def __init__(self, path):
+        super(WindowsShortcut, self).__init__(path)
+
+        # Import modules
+        import sys
+        import pythoncom
+        from win32comext.shell import shell, shellcon
+
+        # Make attribytes for modules
+        self._sys = sys
+        self._pycom = pythoncom
+        self._shell = shell
+        self._shellcon = shellcon
+
+    def _create_old(self, dest: str = "", description: str = "", icon: Optional[Tuple[str, int]]=None):
+        import sys
+        from win32comext.shell import shell
+        from comtypes import CLSCTX_INPROC_SERVER, CoCreateInstance
+        from comtypes.persist import IPersistFile
+
+        shortcut = CoCreateInstance(
+            shell.CLSID_ShellLink,
+            None,
+            CLSCTX_INPROC_SERVER,
+            shell.IID_IShellLink
+        )
+
+        shortcut.SetPath(dest)
+        shortcut.SetDescription(description)
+        if icon:
+            shortcut.SetIconLocation(icon[0], icon[1])
+        else:
+            shortcut.SetIconLocation(sys.executable, 0)
+
+        persist_file = shortcut.QueryInterface(IPersistFile)
+        persist_file.Save(self.path, 0)
+
+    def create(self, target: str = "", icon: Tuple[str, int] = None, is_threaded=False, windows_state = WINDOW_NORMAL):
+        import win32com.client
+        import pythoncom
+        import os
+        from comtypes import CoInitialize
+
+        if not os.path.isabs(target):
+            raise OSError("The path of the shortcut target must be absolute")
+
+        if is_threaded:
+            CoInitialize()
+
+        shell = win32com.client.Dispatch("WScript.Shell")
+        shortcut = shell.CreateShortCut(self.absPath)
+        shortcut.SetTargetPath(target)
+        shortcut.SetIconLocation(icon[0], icon[1])
+        shortcut.SetWindowStyle(7)  # 7 - Minimized, 3 - Maximized, 1 - Normal
+        shortcut.save()
+
+
+class WinSpecialFolders(object):
+    if PLATFORM != PLATFORM_WINDOWS:
+        raise OSError("WinSpecialFolders(...) is Windows-only")
+
+    Fonts = shell.SHGetFolderPath(0, shellcon.CSIDL_FONTS, 0, 0)
+    # Drives = shell.SHGetFolderPath(0, shellcon.CSIDL_DRIVES, 0, 0)  # Has problems
+    Recent = shell.SHGetFolderPath(0, shellcon.CSIDL_RECENT, 0, 0)
+    SendTo = shell.SHGetFolderPath(0, shellcon.CSIDL_SENDTO, 0, 0)
+    System = shell.SHGetFolderPath(0, shellcon.CSIDL_SYSTEM, 0, 0)
+    AppData = shell.SHGetFolderPath(0, shellcon.CSIDL_APPDATA, 0, 0)
+    Cookies = shell.SHGetFolderPath(0, shellcon.CSIDL_COOKIES, 0, 0)
+    Desktop = shell.SHGetFolderPath(0, shellcon.CSIDL_DESKTOP, 0, 0)
+    History = shell.SHGetFolderPath(0, shellcon.CSIDL_HISTORY, 0, 0)
+    MyMusic = shell.SHGetFolderPath(0, shellcon.CSIDL_MYMUSIC, 0, 0)
+    MyVideo = shell.SHGetFolderPath(0, shellcon.CSIDL_MYVIDEO, 0, 0)
+    NetHood = shell.SHGetFolderPath(0, shellcon.CSIDL_NETHOOD, 0, 0)
+    # Network = shell.SHGetFolderPath(0, shellcon.CSIDL_NETWORK, 0, 0)  # Has problems
+    Profile = shell.SHGetFolderPath(0, shellcon.CSIDL_PROFILE, 0, 0)
+    Windows = shell.SHGetFolderPath(0, shellcon.CSIDL_WINDOWS, 0, 0)
+    # Controls = shell.SHGetFolderPath(0, shellcon.CSIDL_CONTROLS, 0, 0)  # Has problems
+    # Internet = shell.SHGetFolderPath(0, shellcon.CSIDL_INTERNET, 0, 0)  # Has problems
+    Personal = shell.SHGetFolderPath(0, shellcon.CSIDL_PERSONAL, 0, 0)
+    # Printers = shell.SHGetFolderPath(0, shellcon.CSIDL_PRINTERS, 0, 0)  # Has problems
+    Programs = shell.SHGetFolderPath(0, shellcon.CSIDL_PROGRAMS, 0, 0)
+    Favorites = shell.SHGetFolderPath(0, shellcon.CSIDL_FAVORITES, 0, 0)
+    PrintHood = shell.SHGetFolderPath(0, shellcon.CSIDL_PRINTHOOD, 0, 0)
+    Resources = shell.SHGetFolderPath(0, shellcon.CSIDL_RESOURCES, 0, 0)
+    StartMenu = shell.SHGetFolderPath(0, shellcon.CSIDL_STARTMENU, 0, 0)
+    SystemX86 = shell.SHGetFolderPath(0, shellcon.CSIDL_SYSTEMX86, 0, 0)
+    Templates = shell.SHGetFolderPath(0, shellcon.CSIDL_TEMPLATES, 0, 0)
+    AdminTools = shell.SHGetFolderPath(0, shellcon.CSIDL_ADMINTOOLS, 0, 0)
+    MyPictures = shell.SHGetFolderPath(0, shellcon.CSIDL_MYPICTURES, 0, 0)
+    CdBurnArea = shell.SHGetFolderPath(0, shellcon.CSIDL_CDBURN_AREA, 0, 0)
+    # Connections = shell.SHGetFolderPath(0, shellcon.CSIDL_CONNECTIONS, 0, 0)  # Has problems
+    # MyDocuments = shell.SHGetFolderPath(0, shellcon.CSIDL_MYDOCUMENTS, 0, 0)  # Has problems
+    CommonMusic = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_MUSIC, 0, 0)
+    CommonVideo = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_VIDEO, 0, 0)
+    LocalAppData = shell.SHGetFolderPath(0, shellcon.CSIDL_LOCAL_APPDATA, 0, 0)
+    CommonAppData = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_APPDATA, 0, 0)
+    CommonStartup = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_STARTUP, 0, 0)
+    InternetCache = shell.SHGetFolderPath(0, shellcon.CSIDL_INTERNET_CACHE, 0, 0)
+    CommonPictures = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_PICTURES, 0, 0)
+    CommonPrograms = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_PROGRAMS, 0, 0)
+    # CommonOEMLinks = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_OEM_LINKS, 0, 0)  # Has problems
+    # ComputersNearMe = shell.SHGetFolderPath(0, shellcon.CSIDL_COMPUTERSNEARME, 0, 0)  # Has problems
+    CommonDocuments = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_DOCUMENTS, 0, 0)
+    CommonFavorites = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_FAVORITES, 0, 0)
+    CommonStartMenu = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_STARTMENU, 0, 0)
+    CommonTemplates = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_TEMPLATES, 0, 0)
+    ProgramFilesX86 = shell.SHGetFolderPath(0, shellcon.CSIDL_PROGRAM_FILESX86, 0, 0)
+    DesktopDirectory = shell.SHGetFolderPath(0, shellcon.CSIDL_DESKTOPDIRECTORY, 0, 0)
+    CommonAdminTools = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_ADMINTOOLS, 0, 0)
+    CommonAltStartup = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_ALTSTARTUP, 0, 0)
+    # ResourcesLocalized = shell.SHGetFolderPath(0, shellcon.CSIDL_RESOURCES_LOCALIZED, 0, 0)  # Has problems
+    ProgramFilesCommon = shell.SHGetFolderPath(0, shellcon.CSIDL_PROGRAM_FILES_COMMON, 0, 0)
+    ProgramFilesCommonX86 = shell.SHGetFolderPath(0, shellcon.CSIDL_PROGRAM_FILES_COMMONX86, 0, 0)
+    CommonDesktopDirectory = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_DESKTOPDIRECTORY, 0, 0)
+
+
+PickledFile = PickleFile
+
+
+if __name__ == '__main__':
+    print(WinSpecialFolders.Profile)

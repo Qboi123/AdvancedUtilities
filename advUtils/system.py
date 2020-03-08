@@ -283,6 +283,26 @@ class Notification(object):
     def get_message(self):
         return self._message
 
+    settitle = set_title
+    gettitle = get_title
+    setmessage = set_message
+    getmessage = get_message
+    setmsg = set_message
+    getmsg = get_message
+    SetTitle = set_title
+    GetTitle = get_title
+    SetMessage = set_message
+    GetMessage = get_message
+    SetMsg = set_message
+    GetMsg = get_message
+    Close = close
+    setTitle = set_title
+    getTitle = get_title
+    setMessage = set_message
+    getMessage = get_message
+    setMsg = set_message
+    getMsg = get_message
+
 
 class ScreenInfo(object):
     def __init__(self):
@@ -292,3 +312,7 @@ class ScreenInfo(object):
     def get_monitors(self):
         monitors = self._screeninfo.get_monitors()
         return monitors
+
+    getmonitors = get_monitors
+    GetMonitors = get_monitors
+    getMonitors = get_monitors

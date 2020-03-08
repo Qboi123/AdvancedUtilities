@@ -10,3 +10,6 @@ gen
 /build/
 /dist/
 /adv_utils.egg-info/
+*.iso
+*.list
+test.png
