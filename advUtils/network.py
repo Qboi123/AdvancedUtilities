@@ -40,7 +40,6 @@ class _Utils:
         return list_
 
 
-
 class Downloader(object):
     def __init__(self, url, file):
         # InfoNone
@@ -525,8 +524,13 @@ class NetworkInfo(object):
                            if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)),
                                                                  s.getsockname()[0], s.close()) for s in
                                                                 [socket.socket(socket.AF_INET,
-                                                                               socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
+                                                                               socket.SOCK_DGRAM)]][0][1]]) if l][-1][0]
         return ip
+
+    @staticmethod
+    def convert2ipv6(ip4str):
+        import ipaddress
+        return str(ipaddress.IPv6Address(int(ipaddress.IPv4Address(ip4str))))
 
     @staticmethod
     def connect_wifi(ssid, password):
@@ -539,12 +543,15 @@ class NetworkInfo(object):
         wifi = pywifi.PyWiFi()
         interfaces = wifi.interfaces()
         # print(interfaces)
-        interfaces[0].scan()
+        interfaces[-1].scan()
+        from time import sleep
+        sleep(2)
         # interfaces[0].connect()
         results = interfaces[0].scan_results()
         # print(results)
         # print(results[0].ssid)
         ssids = [result.ssid for result in results]
+        print(ssids)
         ssids = _Utils.remove_duplicates(ssids)
         # print(ssids)
         return ssids
@@ -555,7 +562,8 @@ class NetworkInfo(object):
 
     @staticmethod
     def add_personal_share():
-        win32net.NetShareAdd()
+        raise NotImplementedError()
+        # win32net.NetShareAdd()
 
     @staticmethod
     def get_network_interfaces():
@@ -580,33 +588,39 @@ if __name__ == '__main__':
 
     def c_runner(conn, secret):
         pak = PackageSystem(conn)
-        for i in range(5):
+        for i in range(3):
             recieved = pak.recv()
             print(f"Recieved Type: {type(recieved)}")
-            print(f"Recieved: {recieved}")
+            print(f"Recieved Data: {recieved}")
+        exit(0)
 
 
     def s_runner(conn, secret):
         import random
 
         pak = PackageSystem(conn)
-        for i in range(5):
+        for i in range(1):
             b = []
             for _ in range(16):
                 b.append(chr(random.randint(64, 96)))
             a = f"{''.join(b)}"
 
             b = random.randint(-5000, +5000)
-            # print(f"Sending Type: {type(a)}")
             pak.send(a)
             pak.send(b)
             pak.send(list(a))
+        exit(0)
 
-    print(NetworkInfo.get_external_ip())
-    print(NetworkInfo.get_internal_ip())
-    print(NetworkInfo.list_wifi_ssids())
+    print(f"NetworkInfo Test | Data value                                            ")
+    print(f"_________________|_______________________________________________________")
+    print(f"Get internal IPv6| {NetworkInfo.convert2ipv6(NetworkInfo.get_internal_ip())}")
+    print(f"Get external IP  | {NetworkInfo.get_external_ip()}                       ")
+    print(f"Get internal IP  | {NetworkInfo.get_internal_ip()}                       ")
+    print(f"List WiFi SSIDs  | {NetworkInfo.list_wifi_ssids()}                       ")
+    print(f"Network shares   | {win32net.NetShareEnum(NetworkInfo.get_internal_ip())}")
+    print(f"_________________|_______________________________________________________")
 
-    print(win32net.NetShareEnum(NetworkInfo.get_internal_ip()))
+    print("\nClient and Server Test")
 
     server_ = Server(36673)
     server_.runner = s_runner

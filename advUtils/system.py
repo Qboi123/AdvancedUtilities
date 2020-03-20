@@ -245,6 +245,7 @@ class Notification(object):
     def __init__(self, title, message, icon):
         import wx.adv
         self._wx_adv = wx.adv
+        self.app = wx.App()
 
         if icon not in self.iconNames:
             raise ValueError(f"Icon is not any of '{self.iconNames}'")
@@ -258,13 +259,14 @@ class Notification(object):
             raise ValueError(f"Icon is not any of '{self.iconNames}'")
 
         self._notify: wx.adv.NotificationMessage
-        self._notify = wx.adv.NotificationMessage(title=title, message=message, parent=None, flags=flags)
+        self._notify = wx.adv.NotificationMessage(title=title, message=message, flags=flags)
 
         self._title: str = title
         self._message: str = message
 
-    def show(self, timeout=0):
-        self._notify.Show(timeout)
+    def show(self):
+        self._notify.Show(-1)
+        self.app.Destroy()
 
     def close(self):
         self._notify.Close()
@@ -316,3 +318,49 @@ class ScreenInfo(object):
     getmonitors = get_monitors
     GetMonitors = get_monitors
     getMonitors = get_monitors
+
+
+class TTS(object):
+    def __init__(self, language, slow=False):
+        self._lang = language
+        self.slow = slow
+
+    def speak(self, text):
+        from gtts import gTTS
+        from playsound import playsound
+        import os
+        from advUtils.advRandom import Random
+
+        filename = f'temp_{Random().randomhex(range(0x10000000000, 0xFFFFFFFFFFF))[2:]}.mp3'
+        # print(filename)
+        # exit(0)
+
+        tts = gTTS(text, lang=self._lang, slow=self.slow, lang_check=True)
+        tts.save(filename)
+        playsound(filename)
+        os.remove(filename)
+
+
+class Translate(object):
+    def __init__(self, from_, to_):
+        self.langFrom = from_
+        self.langTo = to_
+
+    def translate(self, text):
+        pass
+
+
+if __name__ == '__main__':
+    tts = TTS("en")
+
+    # try:
+    #     exec("hgur hfrkejgreg")
+    # except Exception as e:
+    #     a = f"Failed executing. {e.__class__.__name__}"
+    #     print(a)
+    #     tts.speak(a)
+
+    tts.speak("Hello, mr. error")
+    tts.speak("""Hoi""")
+    # tts.speak(" ".join(["Oops we have a problem,"] * 10))
+    # tts.speak("")

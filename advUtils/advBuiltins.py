@@ -711,6 +711,14 @@ class AdvList(list):
         return AdvBytes(pickle.dumps(self))
 
 
+class EditableClass(object):
+    def __setattr__(self, key, value):
+        self.__dict__[key] = value
+
+    def __getattr__(self, item):
+        return self.__dict__[item]
+
+
 def adv_input(prompt: str = "", return_type: Type[Union[int, str, bool, float, bytes]] = None) -> \
         Optional[Union[int, str, bool, float, bytes, AdvInteger, AdvString, AdvBoolean, AdvFloat, AdvBytes]]:
     a = input(prompt)

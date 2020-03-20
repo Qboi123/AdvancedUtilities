@@ -6,6 +6,7 @@ import platform
 
 if platform.system().lower() == "windows":
     from win32comext.shell import shell, shellcon
+
     PLATFORM = "Platform::Windows"
 else:
     PLATFORM = "Platform::Other"
@@ -1255,6 +1256,17 @@ class TomlFile(File):
             file.write(self._toml.dumps(o))
 
 
+class HtmlFile(File):
+    def __init__(self, path):
+        super(HtmlFile, self).__init__(path)
+
+    def get_code_class(self) -> HtmlCode:
+        fd = self.open("r")
+        code = HtmlCode(fd.read())
+        fd.close()
+        return code
+
+
 class WindowsShortcut(File):
     if PLATFORM != PLATFORM_WINDOWS:
         raise OSError("WindowsShortcut(...) is Windows-only")
@@ -1273,7 +1285,7 @@ class WindowsShortcut(File):
         self._shell = shell
         self._shellcon = shellcon
 
-    def _create_old(self, dest: str = "", description: str = "", icon: Optional[Tuple[str, int]]=None):
+    def _create_old(self, dest: str = "", description: str = "", icon: Optional[Tuple[str, int]] = None):
         import sys
         from win32comext.shell import shell
         from comtypes import CLSCTX_INPROC_SERVER, CoCreateInstance
@@ -1296,7 +1308,7 @@ class WindowsShortcut(File):
         persist_file = shortcut.QueryInterface(IPersistFile)
         persist_file.Save(self.path, 0)
 
-    def create(self, target: str = "", icon: Tuple[str, int] = None, is_threaded=False, windows_state = WINDOW_NORMAL):
+    def create(self, target: str = "", icon: Tuple[str, int] = None, is_threaded=False, windows_state=WINDOW_NORMAL):
         import win32com.client
         import pythoncom
         import os
@@ -1377,6 +1389,9 @@ class WinSpecialFolders(object):
 
 PickledFile = PickleFile
 
-
 if __name__ == '__main__':
     print(WinSpecialFolders.Profile)
+    print(WinSpecialFolders.AppData)
+    print(WinSpecialFolders.Desktop)
+    print(WinSpecialFolders.Recent)
+    print(WinSpecialFolders.CommonAppData)
