@@ -340,6 +340,10 @@ class TTS(object):
         playsound(filename)
         os.remove(filename)
 
+    def pspeak(self, text):
+        print(text)
+        self.speak(text)
+
 
 class Translate(object):
     def __init__(self, from_, to_):

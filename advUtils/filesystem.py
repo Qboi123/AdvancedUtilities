@@ -3,6 +3,7 @@ from typing import Optional, Tuple, List, Union, Iterable, NoReturn
 import platform
 
 # print(platform.system())
+from advUtils.code import HtmlCode
 
 if platform.system().lower() == "windows":
     from win32comext.shell import shell, shellcon
@@ -39,17 +40,7 @@ class Directory(object):
         except ValueError:
             self.relPath: Optional[str] = None
 
-    def listdir(self):
-        """
-        Indexes the directory
-        Returns a list of File(...) and Directory(...) objects
-
-        :return:
-        """
-
-        return self.index()
-
-    def index(self):
+    def listdir(self, recursive=False, depth=5):
         """
         Indexes the directory
         Returns a list of File(...) and Directory(...) objects
@@ -58,7 +49,31 @@ class Directory(object):
         """
 
         list_ = []
-        list_.extend(self.listdirs())
+        try:
+            for item in self.os.listdir(self.path):
+                if self.os.path.isdir(self.os.path.join(self.path, item)):
+                    list_.append(Directory(self.os.path.join(self.path, item)))
+                if self.os.path.isfile(self.os.path.join(self.path, item)):
+                    list_.append(File(self.os.path.join(self.path, item)))
+        except PermissionError:
+            pass
+        return list_
+
+    def index(self, recursive=False, depth=5):
+        """
+        Indexes the directory
+        Returns a list of File(...) and Directory(...) objects
+
+        :return:
+        """
+
+        list_ = []
+        items = self.listdirs()
+        dirs = items.copy()
+        if recursive and depth > 0:
+            for dir in dirs:
+                items.extend(dir.index(recursive, depth-1))
+        list_.extend(items)
         list_.extend(self.listfiles())
         return list_
 
@@ -71,9 +86,12 @@ class Directory(object):
         """
 
         list_ = []
-        for item in self.os.listdir(self.path):
-            if self.os.path.isdir(self.os.path.join(self.path, item)):
-                list_.append(Directory(self.os.path.join(self.path, item)))
+        try:
+            for item in self.os.listdir(self.path):
+                if self.os.path.isdir(self.os.path.join(self.path, item)):
+                    list_.append(Directory(self.os.path.join(self.path, item)))
+        except PermissionError:
+            pass
         return list_
 
     def listfiles(self):
@@ -85,9 +103,12 @@ class Directory(object):
         """
 
         list_ = []
-        for item in self.os.listdir(self.path):
-            if self.os.path.isfile(self.os.path.join(self.path, item)):
-                list_.append(File(self.os.path.join(self.path, item)))
+        try:
+            for item in self.os.listdir(self.path):
+                if self.os.path.isfile(self.os.path.join(self.path, item)):
+                    list_.append(File(self.os.path.join(self.path, item)))
+        except PermissionError:
+            pass
         return list_
 
     @staticmethod
@@ -115,6 +136,12 @@ class Directory(object):
             print(up)
             return Directory(up)
         return Directory(self.path)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(<{self.path}>)"
+
+    def __str__(self):
+        return self.path
 
 
 class File(object):
@@ -358,6 +385,12 @@ class File(object):
 
     def get_size(self):
         return self._os.path.getsize(self.path)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(<{self.path}>)"
+
+    def __str__(self):
+        return self.path
 
     readat = read_at
     writeat = write_at
@@ -1395,3 +1428,5 @@ if __name__ == '__main__':
     print(WinSpecialFolders.Desktop)
     print(WinSpecialFolders.Recent)
     print(WinSpecialFolders.CommonAppData)
+
+    print(Directory("/").index(recursive=True, depth=2))
