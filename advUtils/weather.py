@@ -66,8 +66,8 @@ complete_url = base_url + "q=" + city_name + "&APPID=" + API_KEY
 response = requests.get(complete_url)
 
 # json method of response object
-# convert json format data into
-# python format data
+# convert json format value into
+# python format value
 x = response.json()
 
 # Now x contains list of nested dictionaries

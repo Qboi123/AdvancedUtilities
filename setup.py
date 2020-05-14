@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name='adv_utils',
+    name='advUtils',
     version='1.0.0',
     packages=['advUtils'],
     url='',

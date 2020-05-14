@@ -1,3 +1,4 @@
+import socketserver
 from typing import Union, Callable
 import win32net
 
@@ -42,6 +43,23 @@ class _Utils:
 
 class Downloader(object):
     def __init__(self, url, file):
+        """
+        Download a file from the specified URL and save it to the specified filepath (file)
+
+        Example
+        --------
+        >>> import time
+        >>> download = Downloader("https://www.google.com/", "./googlesite.html")
+        >>> download.download()
+        >>> while download.is_downloading():
+        ...     print(f"Status: downloaded {download.totalDownloaded} of {download.fileTotalbytes}")
+        ...     time.sleep(1)   # wait a second before printing the status again
+        >>> print(f"Download of {download._url} is completed!")
+
+        :param url: The URL to download
+        :param file: The filepath to write it to.
+        """
+
         # InfoNone
         self._url = url
         self._file = file
@@ -81,7 +99,7 @@ class Downloader(object):
         """
         Speed information update thread
 
-        :return:
+        :returns: Nothing
         """
         # Load.SetValue(int(self.totalDownloaded / self.fileTotalbytes), )
         self.info = f"Downloading...\nDownloading of \"{self._url.split('/')[-1]}\""
@@ -98,7 +116,13 @@ class Downloader(object):
                 b = self._time.gmtime(a)
             self.timeRemaining = b
 
-    def download(self):
+    def _download(self):
+        """
+        Core download method, use only when you have a customized Thread object you want to use.
+
+        :returns: Nothing
+        """
+
         import urllib.request
         h = "23"
         m = "59"
@@ -152,11 +176,11 @@ class Downloader(object):
             fd.write(block)
             fd.close()
 
-        # data = b''.join(data_blocks)  # had to add b because I was joining bytes not strings
+        # value = b''.join(data_blocks)  # had to add b because I was joining bytes not strings
         url_request.close()
 
         # with open("C:\\Users\\" + self._os.getlogin() + "\\Downloads\\" + self._url.split("/")[-1], "wb") as f:
-        #     f.write(data)
+        #     f.write(value)
 
         # Frame.SetWindowStyle(wx.DEFAULT_FRAME_STYLE)
         # load.Destroy()
@@ -167,11 +191,51 @@ class Downloader(object):
             parent=None, flags=wx.ICON_INFORMATION)
         notify.Show(timeout=0)  # 1 for short timeout, 100 for long timeout
 
+    def download(self, *, threadname=None):
+        """
+        Spawns a thread for downloading the file / webpage
+
+        :param threadname: The name of the thread, leave it to None to use default name
+        :returns: The Thread(...) instance of the downloader
+        """
+
+        t_ = self._threading.Thread(target=self._download, name=threadname)
+        t_.start()
+        return t_
+
 
 class Server(object):
     "A class for a Server instance."""
 
     def __init__(self, port_):
+        """
+        Server constructor, used for communicate between client and server.
+
+        You can use it for host a multiplayer game, and this should be used for hosting the server.
+
+        Example
+        --------
+        >>> def s_runner(conn, secret):
+        ...     import random
+        ...     pak = PackageSystem(conn)
+        ...     for i in range(1):
+        ...         b = []
+        ...         for _ in range(16):
+        ...             b.append(chr(random.randint(64, 96)))
+        ...         a = f"{''.join(b)}"
+        ...         b = random.randint(-5000, +5000)
+        ...         pak.send(a)
+        ...         pak.send(b)
+        ...         pak.send(list(a))
+        ...     exit(0)
+        ...
+        >>> server_ = Server(36673)
+        >>> server_.runner = s_runner
+        >>> server_.start()
+
+        :param port_: The port number to use for the server, used for clients to connect to
+        """
+
         # super(Server, self).__init__(chat_text)
         self.port = port_
         # self.chatText = chat_text
@@ -211,9 +275,24 @@ class Server(object):
         return True
 
     def runner(self, conn, secret):
+        """
+        Used for the handling the connection, like sending packages, or recieving packages.
+        Must be overridden in subclass to take effect.
+
+        :param conn:
+        :param secret:
+        :return:
+        """
+
         pass
 
     def run(self):
+        """
+        Stars the server in non-thread-mode.
+
+        :return: Nothing
+        """
+
         while True:
             s = self._socket.socket(self._socket.AF_INET, self._socket.SOCK_STREAM)
             try:
@@ -264,9 +343,9 @@ class Server(object):
             # conn.send(str(pow(base, a) % prime).encode())
             #
             # # get B
-            # data = conn.recv(4)
-            # data = conn.recv(int(data.decode()))
-            # b = int(data.decode())
+            # value = conn.recv(4)
+            # value = conn.recv(int(value.decode()))
+            # b = int(value.decode())
 
             pak.send(base)
             pak.send(prime)
@@ -287,6 +366,12 @@ class Server(object):
         # self.start()
 
     def start(self):
+        """
+        Starts ther server in thread-mode.
+
+        :return:
+        """
+
         self._threading.Thread(target=self.run).start()
 
 
@@ -298,9 +383,26 @@ class Client(object):
 
     def __init__(self, host, port_):
         """
+        Client constructor, used for communicate between client and server.
 
-        :param host:
-        :param port_:
+        You can use it for multiplayer in a game, and this should be used for the user side.
+
+        Example
+        --------
+        >>> def c_runner(conn, secret):
+        ...     pak = PackageSystem(conn)
+        ...     for i in range(3):
+        ...         recieved = pak.recv()
+        ...         print(f"Recieved Type: {type(recieved)}")
+        ...         print(f"Recieved Data: {recieved}")
+        ...     exit(0)
+        ...
+        >>> client_ = Client("127.0.0.1", 36673)
+        >>> client_.runner = c_runner
+        >>> client_.start()
+
+        :param host: The IP adress for the client
+        :param port_: The port number for the client
         """
         # super(Client, self).__init__(chat_text)
         self.port = port_
@@ -323,13 +425,24 @@ class Client(object):
         self.event: Callable = lambda evt_type, client: None
 
     def runner(self, conn, secret):
+        """
+        Used for the handling the connection, like sending packages, or recieving packages.
+        Must be overridden in subclass to take effect.
+
+        :param conn:
+        :param secret:
+        :return:
+        """
+
         pass
 
     def run(self):
         """
+        Starts the client in non-thread-mode
 
-        :return:
+        :returns: Nothing
         """
+
         conn_init2 = self._socket.socket(self._socket.AF_INET, self._socket.SOCK_STREAM)
         conn_init2.settimeout(5.0)
         pak_init = PackageSystem(conn_init2)
@@ -375,7 +488,15 @@ class Client(object):
         # THIS IS GOOD, BUT I CAN'T TEST ON ONE MACHINE
 
     def start(self):
-        self._threading.Thread(target=self.run).start()
+        """
+        Starts the client in thread-mode
+
+        :returns: The Thread(...) instance of the client thread
+        """
+
+        t_ = self._threading.Thread(target=self.run)
+        t_.start()
+        return t_
 
 
 class PackageEncoder(object):
@@ -410,8 +531,9 @@ class PackageSender(object):
         self._length, self._data = PackageEncoder(data).get_encoded()
 
         import socket
+        import socketserver
 
-        self.conn: socket.socket = conn
+        self.conn: Union[socket.socket, socketserver.BaseRequestHandler] = conn
 
     def send(self):
         len_str = str(self._length)
@@ -421,6 +543,18 @@ class PackageSender(object):
 
         self.conn.send(len_str.encode())
         self.conn.send(self._data)
+
+    def sendall(self):
+        if not issubclass(type(self.conn), socketserver.BaseRequestHandler):
+            raise Exception()
+
+        len_str = str(self._length)
+
+        for _ in range(32, len(len_str), -1):
+            len_str = "0" + len_str
+
+        self.conn.sendall(len_str.encode())
+        self.conn.sendall(self._data)
 
 
 class PackageReciever(object):
@@ -438,6 +572,12 @@ class PackageReciever(object):
 
 class PackageSystem(object):
     def __init__(self, conn):
+        """
+        Package System for communicate with servers / clients
+
+        :param conn:
+        """
+
         import socket
 
         self.conn: socket.socket = conn
@@ -455,6 +595,20 @@ class PackageSystem(object):
 
         self.conn.send(len_str.encode())
         self.conn.send(data)
+
+    def sendall(self, o):
+        length, data = PackageEncoder(o).get_encoded()
+
+        len_str = str(length)
+
+        for _ in range(32, len(len_str), -1):
+            len_str = "0" + len_str
+
+        # print(len(len_str))
+        # print(len_str)
+
+        self.conn.sendall(len_str.encode())
+        self.conn.sendall(data)
 
     def recv(self):
         length = self.conn.recv(32)
@@ -483,7 +637,7 @@ class CryptedPackageSystem(PackageSystem):
 
     def send_c(self, o, key):
         _, data = PackageEncoder(o).get_encoded()
-        # print(data, key)
+        # print(value, key)
         data = self._encrypt(data, key)
         length = len(data)
 
@@ -508,17 +662,53 @@ class CryptedPackageSystem(PackageSystem):
 
 
 class NetworkInfo(object):
+    """
+    Used for getting information about the network, and the connection
+
+    Example
+    --------
+    >>> print(f"NetworkInfo Test | Data value                                            ")
+    >>> print(f"_________________|_______________________________________________________")
+    >>> print(f"Get internal IPv6| {NetworkInfo.convert2ipv6(NetworkInfo.get_internal_ip())}")
+    >>> print(f"Get external IP  | {NetworkInfo.get_external_ip()}                       ")
+    >>> print(f"Get internal IP  | {NetworkInfo.get_internal_ip()}                       ")
+    >>> print(f"List WiFi SSIDs  | {NetworkInfo.list_wifi_ssids()}                       ")
+    >>> print(f"Network shares   | {win32net.NetShareEnum(NetworkInfo.get_internal_ip())}")
+    >>> print(f"_________________|_______________________________________________________")
+
+    """
+
     localIPv4 = "127.0.0.1"
     localIPv6 = "::1"
 
     @staticmethod
     def get_external_ip(ext_ip_url='https://ident.me'):
+        """
+        Used for getting the external IP address.
+
+        Example
+        --------
+        >>> print(f"External IP: {NetworkInfo.get_external_ip()}")
+
+        :param ext_ip_url:
+        :returns: The external IP address
+        """
+
         import urllib.request
         external_ip = urllib.request.urlopen(ext_ip_url).read().decode('utf8')
         return external_ip
 
     @staticmethod
     def get_internal_ip():
+        """
+        Used for getting the external IP address.
+
+        Example
+        --------
+        >>> print(f"Internal IP: {NetworkInfo.get_internal_ip()}")
+
+        :returns: The internal / local IP address
+        """
         import socket
         ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2]
                            if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)),
@@ -529,15 +719,36 @@ class NetworkInfo(object):
 
     @staticmethod
     def convert2ipv6(ip4str):
+        """
+        Is not working properly
+
+        :param ip4str:
+        :return:
+        """
+
         import ipaddress
         return str(ipaddress.IPv6Address(int(ipaddress.IPv4Address(ip4str))))
 
     @staticmethod
     def connect_wifi(ssid, password):
+        """
+        Not implemented yet
+
+        :param ssid:
+        :param password:
+        :return:
+        """
+
         raise NotImplementedError("NetworkInfo(...).connect_wifi(...) is not yet created")
 
     @staticmethod
     def list_wifi_ssids():
+        """
+        Returns a list of WiFi SSIDs
+
+        :returns: A list of WiFi SSIDs
+        """
+
         import pywifi
 
         wifi = pywifi.PyWiFi()
@@ -558,15 +769,33 @@ class NetworkInfo(object):
 
     @staticmethod
     def get_personal_shares():
+        """
+        Returns the Windows shares of the current computer
+
+        :returns: The Windows shares of the current computer
+        """
+
         WindowsShares(NetworkInfo.get_internal_ip())
 
     @staticmethod
     def add_personal_share():
+        """
+        Not implemented yet
+
+        :return:
+        """
+
         raise NotImplementedError()
         # win32net.NetShareAdd()
 
     @staticmethod
     def get_network_interfaces():
+        """
+        Returns a list of WiFi interfaces
+
+        :returns: A list of WiFi interfaces
+        """
+
         import pywifi
 
         wifi = pywifi.PyWiFi()
@@ -576,9 +805,21 @@ class NetworkInfo(object):
 
 class WindowsShares(object):
     def __init__(self, ip):
+        """
+        WindowsShares constructor
+
+        :param ip:
+        """
+
         self._ip = ip
 
     def get_shares(self):
+        """
+        Get the Windows shares.
+
+        :return:
+        """
+
         win32net.NetShareEnum(self._ip)
 
 

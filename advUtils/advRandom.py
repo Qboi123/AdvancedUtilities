@@ -75,125 +75,132 @@ class FastRandom(object):
 
 
 if __name__ == '__main__':
-    a = Random(65535)
-    print(f"Random bytes : {a.randombytes(1, range(15, 255, 16))}")
-    print(f"Random hex   : {a.randomhex(range(0x0f, 0xff, 0x0010))}")
-    print(f"Random string: {a.randomstring(10, string.ascii_letters)}")
-    print(f"Random float : {a.randomfloat(0, 10)}")
+    def test_advrandom():
+        a = Random(65535)
+        print(f"Random bytes : {a.randombytes(1, range(15, 255, 16))}")
+        print(f"Random hex   : {a.randomhex(range(0x0f, 0xff, 0x0010))}")
+        print(f"Random string: {a.randomstring(10, string.ascii_letters)}")
+        print(f"Random float : {a.randomfloat(0, 10)}")
 
-    print(f"\nRandom Values are now the same value")
-    print(f"Random bytes : {Random(1024).randombytes(1, range(15, 255, 16))}")
-    print(f"Random hex   : {Random(1024).randomhex(range(0x0f, 0xff, 0x0010))}")
-    print(f"Random string: {Random(1024).randomstring(10, string.ascii_letters)}")
-    print(f"Random float : {Random(1024).randomfloat(0, 10)}")
 
-    print("\nTesting Random floats")
+        print(f"\nRandom Values are now the same value")
+        print(f"Random bytes : {Random(1024).randombytes(1, range(15, 255, 16))}")
+        print(f"Random hex   : {Random(1024).randomhex(range(0x0f, 0xff, 0x0010))}")
+        print(f"Random string: {Random(1024).randomstring(10, string.ascii_letters)}")
+        print(f"Random float : {Random(1024).randomfloat(0, 10)}")
 
-    import tkinter as tk
-    import tkinter.ttk as ttk
+        print("\nTesting Random floats")
 
-    root_randf = tk.Tk()
-    root_randf.geometry("400x119")
-    root_randf.title("Testing Random floats")
+        import tkinter as tk
+        import tkinter.ttk as ttk
 
-    s_randf = ttk.Style()
-    s_randf.theme_use("default")
+        root_randf = tk.Tk()
+        root_randf.geometry("400x119")
+        root_randf.title("Testing Random floats")
 
-    max_seed_number_randf = 16  # Standard: 1024
-    max_tries_randf = 16  # 65536  # Standard: 16
+        s_randf = ttk.Style()
+        s_randf.theme_use("default")
 
-    highest_randf = -1.0
+        max_seed_number_randf = 16  # Standard: 1024
+        max_tries_randf = 16  # 65536  # Standard: 16
 
-    highest_lbl_randf = tk.Label(root_randf, text=f"{highest_randf}", anchor="w", font="consolas")
-    randfloat_lbl_randf = tk.Label(root_randf, text=f"", anchor="w", font="consolas")
-    curr_seed_lbl_randf = tk.Label(root_randf, text=f"", anchor="w", font="consolas")
-    curr_try_lbl_randf = tk.Label(root_randf, text=f"", anchor="w", font="consolas")
-    progress_randf = ttk.Progressbar(root_randf, maximum=((max_seed_number_randf + 1) * (max_tries_randf + 1)), value=0)
-    # empty = tk.Label(root, text=f"")
-    # seed_progress = ttk.Progressbar(root, maximum=max_seed_number, value=0)
-    # try_progress = ttk.Progressbar(root, maximum=max_tries, value=0)
-    highest_lbl_randf.pack(fill="x")  # , expand=True)
-    randfloat_lbl_randf.pack(fill="x")  # , expand=True)
-    curr_seed_lbl_randf.pack(fill="x")  # , expand=True)
-    curr_try_lbl_randf.pack(fill="x")  # , expand=True)
-    progress_randf.pack(fill="x", pady=0)
-    # empty.pack(fill="x", pady=1)
-    # seed_progress.pack(fill="x", pady=1)
-    # try_progress.pack(fill="x")
+        highest_randf = -1.0
 
-    i = -1
-    for seed in range(0, max_seed_number_randf):
-        a = Random(seed)
-        curr_seed_lbl_randf.config(text=f"seed      ={seed}")
-        # seed_progress.config(value=seed)
-        for tries in range(0, max_tries_randf):
-            _randfloat = a.randomfloat(0, 10)
-            curr_try_lbl_randf.config(text=f"try       ={tries}")
-            randfloat_lbl_randf.config(text=f"_randfloat={_randfloat}")
-            # print(f"Seed {seed} | Try {tries} | {_randfloat}")
-            if _randfloat > highest_randf:
-                highest_randf = _randfloat
-                highest_lbl_randf.config(text=f"highest   ={highest_randf};s={seed};t={tries}")
-            i += 1
-            # try_progress.config(value=tries)
-            progress_randf.config(value=i)
-            root_randf.update()
-    root_randf.mainloop()
+        highest_lbl_randf = tk.Label(root_randf, text=f"{highest_randf}", anchor="w", font="consolas")
+        randfloat_lbl_randf = tk.Label(root_randf, text=f"", anchor="w", font="consolas")
+        curr_seed_lbl_randf = tk.Label(root_randf, text=f"", anchor="w", font="consolas")
+        curr_try_lbl_randf = tk.Label(root_randf, text=f"", anchor="w", font="consolas")
+        progress_randf = ttk.Progressbar(root_randf, maximum=((max_seed_number_randf + 1) * (max_tries_randf + 1)), value=0)
+        # empty = tk.Label(root, text=f"")
+        # seed_progress = ttk.Progressbar(root, maximum=max_seed_number, value=0)
+        # try_progress = ttk.Progressbar(root, maximum=max_tries, value=0)
+        highest_lbl_randf.pack(fill="x")  # , expand=True)
+        randfloat_lbl_randf.pack(fill="x")  # , expand=True)
+        curr_seed_lbl_randf.pack(fill="x")  # , expand=True)
+        curr_try_lbl_randf.pack(fill="x")  # , expand=True)
+        progress_randf.pack(fill="x", pady=0)
+        # empty.pack(fill="x", pady=1)
+        # seed_progress.pack(fill="x", pady=1)
+        # try_progress.pack(fill="x")
 
-    print(f"Highest float value       : {highest_randf}")
-    print(f"Seeds processed           : {max_seed_number_randf}")
-    print(f"Tries per seed processed  : {max_tries_randf}")
-    print(f"Total random floats tested: {max_tries_randf * max_seed_number_randf}")
-    print("")
-    print("Testing FastRandom(seed=...)")
+        i = -1
+        for seed in range(0, max_seed_number_randf):
+            a = Random(seed)
+            curr_seed_lbl_randf.config(text=f"seed      ={seed}")
+            # seed_progress.config(value=seed)
+            for tries in range(0, max_tries_randf):
+                _randfloat = a.randomfloat(0, 10)
+                curr_try_lbl_randf.config(text=f"try       ={tries}")
+                randfloat_lbl_randf.config(text=f"_randfloat={_randfloat}")
+                # print(f"Seed {seed} | Try {tries} | {_randfloat}")
+                if _randfloat > highest_randf:
+                    highest_randf = _randfloat
+                    highest_lbl_randf.config(text=f"highest   ={highest_randf};s={seed};t={tries}")
+                i += 1
+                # try_progress.config(value=tries)
+                progress_randf.config(value=i)
+                root_randf.update()
+        root_randf.mainloop()
+        print(f"Highest float value       : {highest_randf}")
+        print(f"Seeds processed           : {max_seed_number_randf}")
+        print(f"Tries per seed processed  : {max_tries_randf}")
+        print(f"Total random floats tested: {max_tries_randf * max_seed_number_randf}")
+        print("")
+        print("Testing FastRandom(seed=...)")
 
-    fast_rand_root = tk.Tk()
-    fast_rand_root.geometry("400x119")
-    fast_rand_root.title("Testing FastRandom(seed=...)")
+    def test_fastrandom():
+        from tkinter import ttk
+        import tkinter as tk
 
-    s_fr = ttk.Style()
-    s_fr.theme_use("default")
+        fast_rand_root = tk.Tk()
+        fast_rand_root.geometry("400x119")
+        fast_rand_root.title("Testing FastRandom(seed=...)")
 
-    max_seed_number_fr = 512  # Standard: 1024
-    max_tries_fr = 512  # 65536  # Standard: 16
+        s_fr = ttk.Style()
+        s_fr.theme_use("default")
 
-    highest_fr = None
+        max_seed_number_fr = 512  # Standard: 1024
+        max_tries_fr = 512  # 65536  # Standard: 16
 
-    highest_lbl_fr = tk.Label(fast_rand_root, text=f"", anchor="w", font="consolas")
-    randfloat_lbl_fr = tk.Label(fast_rand_root, text=f"", anchor="w", font="consolas")
-    curr_seed_lbl_fr = tk.Label(fast_rand_root, text=f"", anchor="w", font="consolas")
-    curr_try_lbl_fr = tk.Label(fast_rand_root, text=f"", anchor="w", font="consolas")
-    progress_fr = ttk.Progressbar(fast_rand_root, maximum=((max_seed_number_fr + 1) * (max_tries_fr + 1)), value=0)
-    # empty = tk.Label(fast_rand_root, text=f"")
-    # seed_progress = ttk.Progressbar(fast_rand_root, maximum=max_seed_number_fr, value=0)
-    # try_progress = ttk.Progressbar(fast_rand_root, maximum=max_tries_fr, value=0)
-    highest_lbl_fr.pack(fill="x")  # , expand=True)
-    randfloat_lbl_fr.pack(fill="x")  # , expand=True)
-    curr_seed_lbl_fr.pack(fill="x")  # , expand=True)
-    curr_try_lbl_fr.pack(fill="x")  # , expand=True)
-    progress_fr.pack(fill="x", pady=0)
-    # empty.pack(fill="x", pady=1)
-    # seed_progress.pack(fill="x", pady=1)
-    # try_progress.pack(fill="x")
+        highest_fr = None
 
-    i = -1
-    for seed in range(0, max_seed_number_fr):
-        a = FastRandom(seed)
-        curr_seed_lbl_fr.config(text=f"seed      ={seed}")
-        # seed_progress.config(value=seed)
-        for tries in range(0, max_tries_fr):
-            _randfloat_fr = a.randint()
-            curr_try_lbl_fr.config(text=f"try       ={tries}")
-            randfloat_lbl_fr.config(text=f"_randfloat={_randfloat_fr}")
-            if highest_fr is None:
-                highest_fr = _randfloat_fr
-                highest_lbl_fr.config(text=f"highest   ={highest_fr};s={seed};t={tries}")
-            # print(f"Seed {seed} | Try {tries} | {_randfloat_fr}")
-            if _randfloat_fr > highest_fr:
-                highest_fr = _randfloat_fr
-                highest_lbl_fr.config(text=f"highest   ={highest_fr};s={seed};t={tries}")
-            i += 1
-            # try_progress.config(value=tries)
-            progress_fr.config(value=i)
-            fast_rand_root.update()
-    fast_rand_root.mainloop()
+        highest_lbl_fr = tk.Label(fast_rand_root, text=f"", anchor="w", font="consolas")
+        randfloat_lbl_fr = tk.Label(fast_rand_root, text=f"", anchor="w", font="consolas")
+        curr_seed_lbl_fr = tk.Label(fast_rand_root, text=f"", anchor="w", font="consolas")
+        curr_try_lbl_fr = tk.Label(fast_rand_root, text=f"", anchor="w", font="consolas")
+        progress_fr = ttk.Progressbar(fast_rand_root, maximum=((max_seed_number_fr + 1) * (max_tries_fr + 1)), value=0)
+        # empty = tk.Label(fast_rand_root, text=f"")
+        # seed_progress = ttk.Progressbar(fast_rand_root, maximum=max_seed_number_fr, value=0)
+        # try_progress = ttk.Progressbar(fast_rand_root, maximum=max_tries_fr, value=0)
+        highest_lbl_fr.pack(fill="x")  # , expand=True)
+        randfloat_lbl_fr.pack(fill="x")  # , expand=True)
+        curr_seed_lbl_fr.pack(fill="x")  # , expand=True)
+        curr_try_lbl_fr.pack(fill="x")  # , expand=True)
+        progress_fr.pack(fill="x", pady=0)
+        # empty.pack(fill="x", pady=1)
+        # seed_progress.pack(fill="x", pady=1)
+        # try_progress.pack(fill="x")
+
+        i = -1
+        for seed in range(0, max_seed_number_fr):
+            a = FastRandom(seed)
+            curr_seed_lbl_fr.config(text=f"seed      ={seed}")
+            # seed_progress.config(value=seed)
+            for tries in range(0, max_tries_fr):
+                _randfloat_fr = a.randint()
+                curr_try_lbl_fr.config(text=f"try       ={tries}")
+                randfloat_lbl_fr.config(text=f"_randfloat={_randfloat_fr}")
+                if highest_fr is None:
+                    highest_fr = _randfloat_fr
+                    highest_lbl_fr.config(text=f"highest   ={highest_fr};s={seed};t={tries}")
+                # print(f"Seed {seed} | Try {tries} | {_randfloat_fr}")
+                if _randfloat_fr > highest_fr:
+                    highest_fr = _randfloat_fr
+                    highest_lbl_fr.config(text=f"highest   ={highest_fr};s={seed};t={tries}")
+                i += 1
+                # try_progress.config(value=tries)
+                progress_fr.config(value=i)
+                fast_rand_root.update()
+        fast_rand_root.mainloop()
+
+    test_fastrandom()

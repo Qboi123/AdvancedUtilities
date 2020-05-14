@@ -1,6 +1,6 @@
-import io
-from typing import Optional, Tuple, List, Union, Iterable, NoReturn
 import platform
+import typing
+from typing import Optional, Tuple, List, Union, Iterable, NoReturn
 
 # print(platform.system())
 from advUtils.code import HtmlCode
@@ -27,7 +27,7 @@ class Directory(object):
         """
         Base directory class
 
-        :param path:
+        :param path: The path to the directory
         """
 
         import os
@@ -40,12 +40,15 @@ class Directory(object):
         except ValueError:
             self.relPath: Optional[str] = None
 
-    def listdir(self, recursive=False, depth=5):
+    def listdir(self, recursive=False, depth=5) -> List[Union['File', 'Directory']]:
         """
         Indexes the directory
-        Returns a list of File(...) and Directory(...) objects
 
-        :return:
+        :type depth: int
+        :type recursive: bool
+        :param depth: The depth to recursively search for files and directories.
+        :param recursive: Whether to recursively search for files and directories.
+        :returns: A list of File(...) and Directory(...) instances
         """
 
         list_ = []
@@ -59,12 +62,15 @@ class Directory(object):
             pass
         return list_
 
-    def index(self, recursive=False, depth=5):
+    def index(self, recursive=False, depth=5) -> List[Union['File', 'Directory']]:
         """
         Indexes the directory
-        Returns a list of File(...) and Directory(...) objects
 
-        :return:
+        :type depth: int
+        :type recursive: bool
+        :param depth: The depth to recursively search for files and directories.
+        :param recursive: Whether to recursively search for files and directories.
+        :returns: A list of File(...) and Directory(...) objects
         """
 
         list_ = []
@@ -77,12 +83,11 @@ class Directory(object):
         list_.extend(self.listfiles())
         return list_
 
-    def listdirs(self):
+    def listdirs(self) -> List['Directory']:
         """
-        lists directories in the directory
-        Returns a list of Directory(...) objects
+        Lists directories in the directory
 
-        :return:
+        :returns: A list of Directory(...) objects
         """
 
         list_ = []
@@ -94,12 +99,11 @@ class Directory(object):
             pass
         return list_
 
-    def listfiles(self):
+    def listfiles(self) -> List['File']:
         """
-        Lists files in the directory
-        Returns a list of File(...) objects
+        Lists files in the directory.
 
-        :return:
+        :returns: A list of File(...) objects.
         """
 
         list_ = []
@@ -112,21 +116,21 @@ class Directory(object):
         return list_
 
     @staticmethod
-    def _split_path(path: str):
+    def _split_path(path: str) -> Tuple:
         """
-        Returns splitted path
+        Splits the path into a list, and then returns it.
 
-        :param path:
-        :return:
+        :param path: The path to split into a list.
+        :returns: The splitted path.
         """
 
         return tuple(path.replace("\\", "/").split("/"))
 
-    def upper(self):
+    def upper(self) -> 'Directory':
         """
-        Get directory above the directory
+        Get directory above the directory.
 
-        :return:
+        :returns: The directory above.
         """
 
         s_path = self._split_path(self.path)
@@ -149,7 +153,7 @@ class File(object):
         """
         File base class
 
-        :param path:
+        :param path: The path to the file
         """
 
         import os
@@ -167,7 +171,7 @@ class File(object):
             self.relPath: Optional[str] = None
         self._os = os
 
-        self._fd: Optional[io.IOBase] = None
+        self._fd: Optional[Union[typing.TextIO, typing.BinaryIO]] = None
         self._fileOpen = False
 
         try:
@@ -175,26 +179,26 @@ class File(object):
         except UnicodeDecodeError:
             pass
 
-    def start_file(self):
+    def start_file(self) -> None:
         """
         Starts the file
 
-        :return:
+        :returns: Nothing
         """
 
         self._os.startfile(self.path)
 
-    def open(self, mode="w"):
+    def open(self, mode="w") -> Union[typing.TextIO, typing.BinaryIO]:
         """
         Opens the file
 
-        :param mode:
-        :return:
+        :param mode: The file mode to open.
+        :returns: The open(...) return value, type: typing.TextIO.
         """
 
         if not self._fileOpen:
             self._fileOpen = True
-            return open(self.path, mode)
+            return open(self.path, mode)  # type: Union[typing.TextIO, typing.BinaryIO]
         else:
             raise OSError(f"File {self.path} already opened")
 
@@ -202,46 +206,47 @@ class File(object):
         """
         Closes the file
 
-        :return:
+        :returns: Nothing
         """
 
         self._fd.close()
         self._fileOpen = False
 
-    def exists(self):
+    def exists(self) -> bool:
         """
         Returns True if the file exists, returns False otherwise
 
-        :return:
+        :returns: True if the file exists else otherwise.
         """
 
         return self._os.path.exists(self.path)
 
-    def read(self, size=None):
+    # noinspection PyTypeChecker
+    def read(self, size=None) -> bytes:
         """
         Reads the file and returns a bytes-object
 
         :param size:
-        :return:
+        :returns: The bytes-object read from the file
         """
 
         file_was_open = self._fileOpen
         if not self._fileOpen:
             self.open(mode="rb")
 
-        data = self._fd.read(size)
+        data: bytes = self._fd.read(size)
 
         if not file_was_open:
             self.close()
 
         return data
 
-    def readstring(self, size=None):
+    def readstring(self, size=None) -> str:
         """
         Reads the file and returns a string
 
         :param size:
-        :return:
+        :returns: The string read from the file
         """
 
         file_was_open = self._fileOpen
@@ -255,12 +260,12 @@ class File(object):
 
         return data
 
-    def write(self, data):
+    def write(self, data) -> None:
         """
         Writes a string, based on what the value was, uses repr() for non-string or non-bytes objects
 
-        :param data:
-        :return:
+        :param data: The value to write to the file
+        :returns: Nothing, yes, nothing.
         """
 
         if type(data) == str:
@@ -279,23 +284,23 @@ class File(object):
         else:
             self._fd.write(repr(data))
 
-    def write_lines(self, data: Union[List, Tuple]):
+    def write_lines(self, data: Union[List, Tuple]) -> None:
         """
         Writes a list or tuple of lines to the file
 
-        :param data:
-        :return:
+        :param data: The value to write
+        :returns: Nothing
         """
 
         for obj in data:
             self.write(obj)
 
-    def write_yaml(self, data):
+    def write_yaml(self, data) -> None:
         """
         Writes a yaml structured file
 
-        :param data:
-        :return:
+        :param data: The value to write
+        :returns: Nothing
         """
 
         import yaml
@@ -309,12 +314,12 @@ class File(object):
         if file_was_open:
             self.close()
 
-    def write_at(self, offset: int, data):
+    def write_at(self, offset: int, data) -> None:
         """
-        Writes data on the given offset, non-string or non-bytes data will use repr()
+        Writes value on the given offset, non-string or non-bytes value will use repr()
 
-        :param offset:
-        :param data:
+        :param offset: The offset to write the value
+        :param data: The value to write
         :return:
         """
 
@@ -331,10 +336,10 @@ class File(object):
 
     def read_at(self, offset: int, size: int = 1) -> bytes:
         """
-        Reads data with the given offset and the given size from the file. Returns bytes
+        Reads value with the given offset and the given size from the file. Returns bytes
 
-        :param offset:
-        :param size:
+        :param offset: The offset where the value should be read
+        :param size: The size to read from the file
         :returns bytes:
         """
 
@@ -348,7 +353,7 @@ class File(object):
         Creates a file with the given size, creating a file with an size is superfast!
         Trick: Seek with the offset 'size - 1' write the symbol chr(0) and close the file!
 
-        :param size:
+        :param size: The size to read from the file
         :return:
         """
 
@@ -363,13 +368,33 @@ class File(object):
         fd.write(chr(0))
         fd.close()
 
-    def remove(self):
+    def remove(self) -> None:
+        """
+        Removes the file.
+
+        :returns: Nothing
+        """
+
         self._os.remove(self.path)
 
     def delete(self):
+        """
+        Removes the file
+
+        :returns: Nothing
+        """
+
         self.remove()
 
     def rename(self, name, change_path=True):
+        """
+        Renames the file, when change_path is True, the path of the File(...) instance will be changed too.
+
+        :param name: The new name for the file.
+        :param change_path: Whether to change the File(...) instance path.
+        :return:
+        """
+
         if not self._os.path.isabs(name):
             name = self._os.path.abspath(name)
         else:
@@ -383,11 +408,17 @@ class File(object):
             else:
                 self.path = self._os.path.relpath(name)
 
-    def get_size(self):
+    def get_size(self) -> int:
+        """
+        Get the file size in bytes of the file.
+
+        :returns: The file size in bytes.
+        """
+
         return self._os.path.getsize(self.path)
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(<{self.path}>)"
+        return f"{self.__class__.__name__}(<{repr(self.path)}>)"
 
     def __str__(self):
         return self.path
@@ -410,7 +441,7 @@ class ExecutableFile(File):
         self._subps = subprocess
 
     @staticmethod
-    def _parse_command(file, *args):
+    def _parse_command(file, *args: str):
         command = [file]
 
         for arg in args:
@@ -421,18 +452,18 @@ class ExecutableFile(File):
         command_str = " ".join(command)
         return command_str
 
-    def execute(self, *args):
+    def execute(self, *args: str) -> int:
         """
         Executes the executable file
 
-        :param args:
-        :return:
+        :param args: The arguments to execute the program with.
+        :returns: The exit code of the process
         """
 
         command = self._parse_command(self.absPath, *args)
-        self._os.system(command)
+        return self._os.system(command)
 
-    def subprocess(self, *args):
+    def subprocess(self, *args: str):
         """
         Creates a subprocess for the executable file
 
@@ -441,6 +472,18 @@ class ExecutableFile(File):
         """
 
         self._subps.run([self.absPath, *args])
+
+    def start(self, *args: str):
+        """
+        **NOTE:** This method is only available for Windows
+
+        Starts the executable with the given arguments
+
+        :param args: The arguments to start the program with.
+        :returns: Nothing
+        """
+
+        self._subps.Popen(["cmd", "/k", "start", "", self.absPath, *args])
 
 
 class PythonFile(File):
@@ -545,7 +588,8 @@ class PickleFile(File):
         import pickle
         self._pickle = pickle
 
-    def read(self, **kwargs):
+    # noinspection PyMethodOverriding
+    def read(self):
         """
         Reads a pickle file
 
@@ -553,8 +597,8 @@ class PickleFile(File):
         :return:
         """
 
-        if len(kwargs.keys()) != 0:
-            raise ValueError("Method 'read()' doesn't take keyword arguments")
+        # if len(kwargs.keys()) != 0:
+        #     raise ValueError("Method 'read()' doesn't take keyword arguments")
         data = super().read()
         self._pickle.loads(data)
 
@@ -567,6 +611,45 @@ class PickleFile(File):
         """
 
         data = self._pickle.dumps(o)
+        super().write(data)
+
+
+class DillFile(File):
+    def __init__(self, path):
+        """
+        Pickle is a file format for python variables
+
+        :param path:
+        """
+
+        super(DillFile, self).__init__(path)
+
+        import dill
+        self._dill = dill
+
+    # noinspection PyMethodOverriding
+    def read(self):
+        """
+        Reads a pickle file
+
+        :param kwargs:
+        :return:
+        """
+
+        # if len(kwargs.keys()) != 0:
+        #     raise ValueError("Method 'read()' doesn't take keyword arguments")
+        data = super().read()
+        self._dill.loads(data)
+
+    def write(self, o):
+        """
+        Writes a pickle file
+
+        :param o:
+        :return:
+        """
+
+        data = self._dill.dumps(o)
         super().write(data)
 
 
@@ -1134,6 +1217,14 @@ class NZTFile(ZipArchive):
         self.zipFormatFile.close()
 
 
+class NZT2File(NZTFile):
+    def __init__(self, path, mode="r"):
+        super(NZT2File, self).__init__(path, mode)
+
+        import dill
+        self._pickle = dill
+
+
 class TextFile(File):
     def __init__(self, path):
         super(TextFile, self).__init__(path)
@@ -1158,7 +1249,7 @@ class TextFile(File):
 
     def read_at(self, offset: int, size: int = 1) -> str:
         """
-        Reads data with the given offset and the given size from the file. Returns str
+        Reads value with the given offset and the given size from the file. Returns str
 
         :param offset:
         :param size:
@@ -1182,7 +1273,7 @@ class TextFile(File):
 
     def write_at(self, offset: int, data: str) -> NoReturn:
         """
-        Writes data on the given offset, non-string or non-bytes data will use repr()
+        Writes value on the given offset, non-string or non-bytes value will use repr()
 
         :param offset:
         :param data:
@@ -1223,7 +1314,7 @@ class BinaryFile(File):
 
     def read_at(self, offset: int, size: int = 1) -> bytes:
         """
-        Reads data with the given offset and the given size from the file. Returns str
+        Reads value with the given offset and the given size from the file. Returns str
 
         :param offset:
         :param size:
@@ -1247,7 +1338,7 @@ class BinaryFile(File):
 
     def write_at(self, offset: int, data: bytes) -> NoReturn:
         """
-        Writes data on the given offset, non-string or non-bytes data will use repr()
+        Writes value on the given offset, non-string or non-bytes value will use repr()
 
         :param offset:
         :param data:
@@ -1343,7 +1434,6 @@ class WindowsShortcut(File):
 
     def create(self, target: str = "", icon: Tuple[str, int] = None, is_threaded=False, windows_state=WINDOW_NORMAL):
         import win32com.client
-        import pythoncom
         import os
         from comtypes import CoInitialize
 
@@ -1430,3 +1520,6 @@ if __name__ == '__main__':
     print(WinSpecialFolders.CommonAppData)
 
     print(Directory("/").index(recursive=True, depth=2))
+
+    import os as _os
+    ExecutableFile("C:/Windows/notepad.exe").start(_os.path.join(WinSpecialFolders.Desktop, "TestDocument.txt"))

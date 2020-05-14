@@ -185,28 +185,31 @@ class TimeSpan(object):
         return f"{self._start.__str__()} - {self._end.__str__()}"
 
     def __repr__(self):
-        return f"TimeSpan(<{self._start.__str__()}>, <{self._end.__str__()}>)"
+        return f"TimeSpan(<{repr(self._start.__str__())}>, <{repr(self._end.__str__())}>)"
 
 
 class WeekDay(object):
     def __init__(self, wday):
-        self._wDay = wday
+        self._weekDay = wday
 
     def __str__(self):
-        if self._wDay == 0:
+        if self._weekDay == 0:
             return f"Monday"
-        if self._wDay == 1:
+        if self._weekDay == 1:
             return f"Thuesday"
-        if self._wDay == 2:
+        if self._weekDay == 2:
             return f"Wednesday"
-        if self._wDay == 3:
+        if self._weekDay == 3:
             return f"Thursday"
-        if self._wDay == 4:
+        if self._weekDay == 4:
             return f"Friday"
-        if self._wDay == 5:
+        if self._weekDay == 5:
             return f"Saturday"
-        if self._wDay == 6:
+        if self._weekDay == 6:
             return f"Sunday"
+
+    def __repr__(self):
+        return f"WeekDay(<{repr(self.__str__())}>)"
 
 
 class Time(object):
@@ -423,7 +426,7 @@ class Time(object):
         :return:
         """
 
-        return f"Time(<{self.__str__()}>)"
+        return f"Time(<{repr(self.__str__())}>)"
 
     def __str__(self):
         """
@@ -546,4 +549,4 @@ if __name__ == '__main__':
     time__ = Time.system_time()
 
     tts = system.TTS("en")
-    tts.pspeak(f"It's {time__.get_weekday()} {str(time__)[]}")
+    tts.pspeak(f"It's {time__.get_weekday()} {str(time__)}")

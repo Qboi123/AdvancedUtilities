@@ -25,7 +25,32 @@ class PythonCode(object):
         pass
 
     def execute_code(self, filename):
-        exec(compile(self._code, filename, "exec"))
+        """
+        Execute code with the given filename
+
+        Examples
+        --------
+        Example 1:
+
+        >>> code = 'print("Hello World")'
+        >>> pycode = PythonCode(code)
+        >>> pycode.execute_code("Test.py")
+
+        Example 2:
+
+        >>> filename = "Test.py"  # Replace with your own filename you want to execute
+        >>> with open(filename) as file:
+        ...     code = file.read()
+        ...     pycode = PythonCode(code)
+        ...     pycode.execute_code(filename)
+
+        :param filename: The filename to use for the code execution
+        :returns: The compiled code object
+        """
+
+        ccode = compile(self._code, filename, "exec")
+        exec(ccode)
+        return ccode
 
 
 class HtmlCode(object):
@@ -164,10 +189,10 @@ print("Hallo")
 a = "test" + str(random.randint(100, 999))
 b = True
 if b:
-    print(f"Dit is {a}")
+    print(f"This is {a}")
 """
         pycode = PythonCode(code)
-        pycode.execute_code("SomeShittyTest.py")
+        pycode.execute_code("someTest.py")
 
 
     test_pycode()
