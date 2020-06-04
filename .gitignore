@@ -30,3 +30,4 @@ advUtils/__pycache__/miscellaneous.cpython-37.pyc
 /test8.py
 *.toml
 advUtils/information.py
+/advUtils/core/__pycache__/
