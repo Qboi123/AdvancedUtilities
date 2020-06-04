@@ -1,4 +1,4 @@
-class Architecture(object):
+class QArchitecture(object):
     def __init__(self, arch, bits):
         self.arch = arch
         self.bits = bits
@@ -36,28 +36,28 @@ class Architecture(object):
             ValueError(f"Unknown architecture: {self.arch}")
 
 
-class PythonVersion(object):
+class QPythonVersion(object):
     def __init__(self, major, minor, patch):
         self.major = major
         self.minor = minor
         self.patch = patch
         
-    def __eq__(self, other: 'PythonVersion') -> bool:
+    def __eq__(self, other: 'QPythonVersion') -> bool:
         return (self.major == other.major) and (self.minor == other.minor) and (self.patch == other.patch)
 
-    def __ne__(self, other: 'PythonVersion') -> bool:
+    def __ne__(self, other: 'QPythonVersion') -> bool:
         return (self.major != other.major) and (self.minor != other.minor) and (self.patch != other.patch)
 
-    def __gt__(self, other: 'PythonVersion') -> bool:
+    def __gt__(self, other: 'QPythonVersion') -> bool:
         return (self.major > other.major) or (self.minor > other.minor) or (self.patch > other.patch)
     
-    def __lt__(self, other: 'PythonVersion') -> bool:
+    def __lt__(self, other: 'QPythonVersion') -> bool:
         return (self.major < other.major) or (self.minor < other.minor) or (self.patch < other.patch)
 
-    def __ge__(self, other: 'PythonVersion') -> bool:
+    def __ge__(self, other: 'QPythonVersion') -> bool:
         return (self.major >= other.major) or (self.minor >= other.minor) or (self.patch >= other.patch)
     
-    def __le__(self, other: 'PythonVersion') -> bool:
+    def __le__(self, other: 'QPythonVersion') -> bool:
         return (self.major <= other.major) or (self.minor <= other.minor) or (self.patch <= other.patch)
 
     def __str__(self) -> str:
@@ -71,19 +71,26 @@ class PythonVersion(object):
         import sys
         version_tuple = sys.version.split(' ')[0].split('.')
         vt = version_tuple
-        return PythonVersion(vt[0], vt[1], vt[2])
+        return QPythonVersion(vt[0], vt[1], vt[2])
 
-    def get_architecture(self):
+    @classmethod
+    def get_architecture(cls):
         import platform
         import sys
         return platform.architecture(sys.executable)
 
 
-class Platform(object):
+class QPlatform(object):
     def __init__(self, platform, version):
         self.platform = platform
         self.version = version
 
+    # @classmethod
+    # def get_systemplatform(cls):
+    #     import platform
+    #     p_ = platform.system()
+    #     v_ = platform.version
+
 
 if __name__ == '__main__':
-    print(PythonVersion.get_internal())
+    print(QPythonVersion.get_internal())

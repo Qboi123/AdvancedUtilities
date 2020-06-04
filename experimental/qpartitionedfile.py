@@ -1,26 +1,29 @@
 from io import BytesIO
 
+from advUtils.core.decorators import experimental
 
-class PartitionedFile(object):
+
+@experimental
+class QPartitionedFile(object):
     def __init__(self, file: BytesIO):
         if not file.seekable():
             raise IOError("File is not seekable")
         if not file.readable():
             raise IOError("File is not readable")
-        self._io = file
+        self.io = file
 
     def _create_scheme(self):
-        if not self._io.writable():
+        if not self.io.writable():
             raise IOError("File is not writable")
 
-        a = self._io
+        a = self.io
         a.seek(0)
         a.write(b"\x00")
         # a.seek(8192)
         # a.write(b"\xff")
 
     def create(self, size=9216):
-        if not self._io.writable():
+        if not self.io.writable():
             raise IOError("File is not writable")
 
         if size < 9216:
@@ -31,8 +34,8 @@ class PartitionedFile(object):
 
         # super(PartitionedFile, self).create(size)
 
-        self._io.seek(size - 4)
-        self._io.write(b"\xff\xff\xff\xff")
+        self.io.seek(size - 4)
+        self.io.write(b"\xff\xff\xff\xff")
 
         self._create_scheme()
 
@@ -55,7 +58,7 @@ class PartitionedFile(object):
             a.seek(paritiondata_offset + offset)
             return a.read(size)
 
-        a = self._io
+        a = self.io
 
         # print(readat(0, 1).hex())
         # print(readat(1, 1).hex())
@@ -95,7 +98,7 @@ class PartitionedFile(object):
             a.seek(paritiondata_offset + offset)
             return a.read(size)
 
-        a = self._io
+        a = self.io
 
         # print(readat(0, 1).hex())
         # print(readat(1, 1).hex())
@@ -117,15 +120,16 @@ class PartitionedFile(object):
                 if readat(10, 1) == b"\x02":
                     return int.from_bytes(readat(2, 8), "little")
 
+    # noinspection PyUnusedLocal
     def new_partition(self, index, name, offset: int, size):
-        if not self._io.writable():
+        if not self.io.writable():
             raise IOError("File is not writable")
 
-        a = self._io
+        a = self.io
 
         paritiondata_offset = (32 * index)
 
-        if offset + size > len(self._io.getbuffer()) - 4 - 8192:
+        if offset + size > len(self.io.getbuffer()) - 4 - 8192:
             raise EOFError("Partition stop position exceeds the end of file.")
 
         a.seek(paritiondata_offset)
@@ -148,7 +152,7 @@ class PartitionedFile(object):
         if len(data) > size:
             raise OverflowError("Data is larger than the partition size")
 
-        a = self._io
+        a = self.io
         a.seek(8192+offset)
         a.write(data)
 
@@ -183,7 +187,7 @@ class PartitionedFile(object):
         elif size > _size:
             raise OverflowError("Can't read more than the partition size")
 
-        a = self._io
+        a = self.io
         a.seek(8192+offset)
         return a.read(size)
 
@@ -197,7 +201,7 @@ class PartitionedFile(object):
             a.seek(paritiondata_offset + offset)
             return a.read(size)
 
-        a = self._io
+        a = self.io
 
         if readat(0, 32) == (0).to_bytes(32, "little"):
             return False
@@ -211,15 +215,15 @@ if __name__ == '__main__':
 
     def test2():
         file_ = BytesIO()
-        pfile = PartitionedFile(file_)
+        pfile = QPartitionedFile(file_)
         pfile.create(1024*9)
         pfile.new_partition(255, "", offset=0, size=16)
         print(f"Partition Size:   {pfile.get_partitionsize(255)}")
         print(f"Partition Offset: {pfile.get_partitionoffset(255)}")
-        pfile._io.seek(0)
+        pfile.io.seek(0)
         pfile.writedata(255, "Hello World!".encode("utf-8"))
         print(f"Partition Data:   {pfile.readdata(255).decode('utf-8')}")
-        print(f"Buffer:           {pfile._io.getbuffer().hex()}")
+        print(f"Buffer:           {pfile.io.getbuffer().hex()}")
         print(f"Partitions:       {pfile.list_partitions()}")
 
         print(f"DataAvailable:    {pfile.data_available(0, 16)}")
@@ -252,15 +256,16 @@ if __name__ == '__main__':
 
     def test3():
         file_ = BytesIO()
-        pfile_ = PartitionedFile(file_)
+        pfile_ = QPartitionedFile(file_)
         pfile_.create(8192*2+16)
         for i in range(255, 0, -1):
             pfile_.new_partition(i, "", (32*(255-i)), 32)
             pfile_.writedata(i, f"Partition {i}".encode("utf-8"))
+            print(f"Writing partition {i}")
 
         file_.seek(0)
 
         with open("test.partition", "wb") as file2_:
-            file2_.write(pfile_._io.read())
+            file2_.write(pfile_.io.read())
 
     test3()

@@ -1,7 +1,7 @@
 from pyGoogleSearch import Google as GoogleSearch
 
 
-class GoogleImages(object):
+class QGoogleImages(object):
     def __init__(self):
         """
         Google images scraper
@@ -22,7 +22,7 @@ class GoogleImages(object):
         self._googleimg.GoogleImageDownloader(query, n)
 
 
-class Google(object):
+class QGoogle(object):
     @staticmethod
     def google_search(query, num=10, start=0, recent=None, pages=1, sleep=False):
         """
@@ -46,4 +46,4 @@ class Google(object):
         :return:
         """
 
-        return GoogleImages()
+        return QGoogleImages()

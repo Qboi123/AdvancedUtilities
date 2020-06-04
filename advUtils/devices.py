@@ -4,7 +4,7 @@ import typing as _t
 from Geometry import Point
 from overload import overload
 
-from advUtils.miscellaneous import Pixel, Color
+from advUtils.miscellaneous import QPixel, QColor
 
 
 class Screen(object):
@@ -25,7 +25,7 @@ class Screen(object):
         >>> screen = Screen()         # Does create wx.App(...)
         >>> screen.get_pixel(24, 24)  # Gets the pixel at 24, 24. Returns a Pixel(...) instance.
 
-        >>> color = Color(255, 0, 0)             # Color red
+        >>> color = QColor(255, 0, 0)             # Color red
         >>> screen = Screen(create_wxapp=False)  # Does not create wx.App(...)
         >>> screen.set_pixel(24, 24, color)      # Sets the pixel at 24, 24 to variable 'color' (red)
 
@@ -36,17 +36,23 @@ class Screen(object):
         self.getPixelMethod = getpixel_method
 
         try:
+            # noinspection PyPackageRequirements
             import win32gui
             self._use_pywin32 = True
         except ImportError:
             self._use_pywin32 = False
+            win32gui = None
         try:
+            # noinspection PyPackageRequirements
             import wx
             self._use_wx = True
         except ImportError:
             self._use_wx = False
+            wx = None
 
         if create_wxapp:
+            if wx is None:
+                raise ImportError("You must install wxPython to use this feature.")
             self.wxapp = wx.App()
         else:
             self.wxapp = None
@@ -78,13 +84,13 @@ class Screen(object):
 
         if using == "pywin32":
             if not self._use_pywin32:
-                raise OSError("You must need PyWin32 to use this (NOTE: Windows only)")
+                raise ImportError("You must need PyWin32 to use this (NOTE: Windows only)")
             from win32api import GetSystemMetrics
             w = GetSystemMetrics(0)
             h = GetSystemMetrics(1)
         elif using == "ctypes":
             if platform.system() != "Windows":
-                raise OSError(f"ctypes is not supported on {platform.system()}, it's Windows only")
+                raise ImportError(f"ctypes is not supported on {platform.system()}, it's Windows only")
             import ctypes
             user32 = ctypes.windll.user32
             w = user32.GetSystemMetrics(0)
@@ -96,7 +102,7 @@ class Screen(object):
             h = tk.winfo_screenheight()
         elif using == "wxpython":
             if not self._use_wx:
-                raise OSError("You must need wxPython to use this")
+                raise ImportError("You must need wxPython to use this")
             w, h = self.wdc.GetSize()
         else:
             raise ValueError("Invalid 'using' parameter, check 'get_screensize.__doc__' for more information")
@@ -110,7 +116,7 @@ class Screen(object):
 
     # noinspection PyArgumentList
     @overload
-    def get_pixel(self, x: int, y: int) -> Pixel:
+    def get_pixel(self, x: int, y: int) -> QPixel:
         """
         Gets the pixel at x,y
 
@@ -127,8 +133,10 @@ class Screen(object):
         if self.getPixelMethod == "Pillow":
             from PIL import ImageGrab, Image
             pil_color: _t.Tuple[int, int, int] = ImageGrab.grab((x, y, x + 1, y + 1)).getpixel((0, 0))
-            return Pixel(x, y, Color(pil_color))
+            # noinspection PyTypeChecker
+            return QPixel(x, y, QColor(pil_color))
         elif self.getPixelMethod == "PyWin32":
+            # noinspection PyPackageRequirements
             import win32gui
             win32gui.GetPixel(self.dc, x, y)
         else:
@@ -136,7 +144,7 @@ class Screen(object):
                              f"look at the Screen Class doc for more information")
 
     @get_pixel.add
-    def get_pixel(self, xy: _t.Tuple[int, int]) -> Pixel:
+    def get_pixel(self, xy: _t.Tuple[int, int]) -> QPixel:
         """
         Gets the pixel at xy
 
@@ -152,7 +160,7 @@ class Screen(object):
         return self.get_pixel(xy[0], xy[1])
 
     @get_pixel.add
-    def get_pixel(self, coords: Point) -> Pixel:
+    def get_pixel(self, coords: Point) -> QPixel:
         """
         Gets the pixel at the given coordinates
 
@@ -161,34 +169,31 @@ class Screen(object):
         >>> screen = Screen()         # Does create wx.App(...)
         >>> screen.get_pixel(Point(24, 24))  # Gets the pixel at 24, 24. Returns a Pixel(...) instance.
 
-        :param x: The Y coordinate of the pixel
-        :param y: The X coordinate of the pixel
+        :param coords:
         :returns: A Pixel(...) instance of the given x and y coordinates
         """
 
         return self.get_pixel(int(coords.x), int(coords.y))
 
     @overload
-    def set_pixel(self, x: int, y: int, color: Color) -> None:
+    def set_pixel(self, x: int, y: int, color: QColor) -> None:
         """
         Sets the pixel at x,y to color
 
         Example
         --------
-        >>> color = Color(255, 0, 0)                # Color red
+        >>> color = QColor(255, 0, 0)                # Color red
         >>> screen = Screen(create_wxapp=False)     # Does not create wx.App(...)
         >>> screen.set_pixel(24, 24, color)         # Sets the pixel at 24, 24 to variable 'color' (red)
         >>> screen.set_pixel((24, 24), color)       # Sets the pixel at 24, 24 to variable 'color' (red)
         >>> screen.set_pixel(Point(24, 24), color)  # Sets the pixel at 24, 24 to variable 'color' (red)
 
-        >>> color = Color(255, 0, 0)             # Color red
-        >>> pixel = Pixel(24, 24, color)         # Create a pixel instance with red color for position 24, 24
+        >>> color = QColor(255, 0, 0)             # Color red
+        >>> pixel = QPixel(24, 24, color)         # Create a pixel instance with red color for position 24, 24
         >>> screen = Screen(create_wxapp=False)  # Does not create wx.App(...)
         >>> screen.set_pixel(pixel)              # Sets the pixel to variable 'pixel'
 
 
-        :param xy: The X and Y coordinates of the pixel to set, must be a tuple with 2 integers
-        :param pixel: The pixel to set, must be a Pixel(...) instance
         :param x: The X coordinate of the pixel to set, must be an integer
         :param y: The Y coordinate of the pixel to set, must be an integer
         :param color: The pixel color to set, must be a Color instance
@@ -197,25 +202,26 @@ class Screen(object):
 
         if not self._use_pywin32:
             raise ValueError("Can't set pixel without having PyWin32 installed")
+
+        # noinspection PyPackageRequirements
         import win32gui
         import win32api
         red = win32api.RGB(color.r, color.g, color.b)
         win32gui.SetPixel(self.dc, x, y, red)  # draw red at 0,0
 
     @set_pixel.add
-    def set_pixel(self, xy: _t.Tuple[int, int], color: Color) -> None:
+    def set_pixel(self, xy: _t.Tuple[int, int], color: QColor) -> None:
         """
         Sets the pixel at xy to color
 
         Example
         --------
-        >>> color = Color(255, 0, 0)             # Color red
+        >>> color = QColor(255, 0, 0)             # Color red
         >>> screen = Screen(create_wxapp=False)  # Does not create wx.App(...)
         >>> screen.set_pixel((24, 24), color)    # Sets the pixel at 24, 24 to variable 'color' (red)
 
 
-        :param x:
-        :param y:
+        :param xy:
         :param color:
         :return:
         """
@@ -223,19 +229,18 @@ class Screen(object):
         self.set_pixel(xy[0], xy[1], color)
 
     @set_pixel.add
-    def set_pixel(self, coords: Point, color: Color) -> None:
+    def set_pixel(self, coords: Point, color: QColor) -> None:
         """
         Sets the pixel at the given coordinates to color
 
         Example
         --------
-        >>> color = Color(255, 0, 0)                # Color red
+        >>> color = QColor(255, 0, 0)                # Color red
         >>> screen = Screen(create_wxapp=False)     # Does not create wx.App(...)
         >>> screen.set_pixel(Point(24, 24), color)  # Sets the pixel at 24, 24 to variable 'color' (red)
 
 
-        :param x:
-        :param y:
+        :param coords:
         :param color:
         :return:
         """
@@ -243,37 +248,35 @@ class Screen(object):
         self.set_pixel(int(coords.x), int(coords.y), color)
 
     @set_pixel.add
-    def set_pixel(self, pixel: Pixel) -> None:
+    def set_pixel(self, pixel: QPixel) -> None:
         """
         Sets the pixel at the pixel x,y to the pixel color
 
         Example
         --------
-        >>> color = Color(255, 0, 0)             # Color red
-        >>> pixel = Pixel(24, 24, color)         # Create a pixel instance with red color for position 24, 24
+        >>> color = QColor(255, 0, 0)             # Color red
+        >>> pixel = QPixel(24, 24, color)         # Create a pixel instance with red color for position 24, 24
         >>> screen = Screen(create_wxapp=False)  # Does not create wx.App(...)
         >>> screen.set_pixel(pixel)              # Sets the pixel to variable 'pixel'
 
 
-        :param x:
-        :param y:
-        :param color:
+        :param pixel:
         :return:
         """
 
         self.set_pixel(pixel.x, pixel.y, pixel.color)
 
     @overload
-    def draw_line(self, x1, y1, x2, y2, color: Color) -> None:
+    def draw_line(self, x1, y1, x2, y2, color: QColor) -> None:
         """
         Draws a line from x1,y1 to x2,y2 with the specified color
 
         Example
         --------
-        >>> screen = Screen()                                     # Creates the screen instance
-        >>> color = Color(0, 255, 127)                            # Turquoise color
-        >>> screen.draw_line(0, 0, 100, 100, color)               # Draws a line from 0,0 to 100,100 in the color 'color'
-        >>> screen.draw_line((0, 0), (100, 50), color)            # Draws a line from 0,0 to 100,50 in the color 'color'
+        >>> screen = Screen()                                    # Creates the screen instance
+        >>> color = QColor(0, 255, 127)                          # Turquoise color
+        >>> screen.draw_line(0, 0, 100, 100, color)              # Draws a line from 0,0 to 100,100 in the color 'color'
+        >>> screen.draw_line((0, 0), (100, 50), color)           # Draws a line from 0,0 to 100,50 in the color 'color'
         >>> screen.draw_line(Point(0, 0), Point(50, 100), color)  # Draws a line from 0,0 to 50,100 in the color 'color'
 
         :param x1: The X coordinate of the first point
@@ -292,20 +295,22 @@ class Screen(object):
         self.wdc.DrawLine(x1, y1, x2, y2)
 
     @draw_line.add
-    def draw_line(self, xy1: _t.Tuple[int, int], xy2: _t.Tuple[int, int], color: Color):
+    def draw_line(self, xy1: _t.Tuple[int, int], xy2: _t.Tuple[int, int], color: QColor):
         self.draw_line(xy1[0], xy1[1], xy2[0], xy2[1], color)
 
     @draw_line.add
-    def draw_line(self, pos1: Point, pos2: Point, color: Color):
+    def draw_line(self, pos1: Point, pos2: Point, color: QColor):
         self.draw_line(int(pos1.x), int(pos1.y), int(pos2.x), int(pos2.y), color)
 
     def paint_desktop(self):
         if not self._use_pywin32:
             raise ValueError("Can't paint desktop without having PyWin32 installed")
 
+        # noinspection PyPackageRequirements
         import win32gui
         win32gui.PaintDesktop(self.dc)
 
+    # noinspection PyUnresolvedReferences
     @staticmethod
     def get_displaymodes():
         """
@@ -431,7 +436,7 @@ if __name__ == '__main__':
         while True:
             for y in range(0, h):
                 for x in range(0, w):
-                    color = Color(*[rand.randint(0, 255) for _ in range(3)])
+                    color = QColor(*[rand.randint(0, 255) for _ in range(3)])
                     # color = Color(*([rand.randint(0, 255)] * 3))
                     screen.set_pixel(x, y, color)
                     del color
@@ -441,7 +446,7 @@ if __name__ == '__main__':
         while True:
             x = rand.randint(0, 1919)
             y = rand.randint(0, 1079)
-            color = Color(*[rand.randint(0, 255) for _ in range(3)])
+            color = QColor(*[rand.randint(0, 255) for _ in range(3)])
             screen.set_pixel((x, y), color)
 
 
@@ -458,12 +463,12 @@ if __name__ == '__main__':
         dc = wx.ScreenDC()
         screen_width, screen_height = wx.DisplaySize()
         dc.StartDrawingOnTop(None)
-        dc.SetPen(wx.Pen(Color(*[rand.randint(0, 255) for _ in range(3)]).to_colorhex(False), 100000))
+        dc.SetPen(wx.Pen(QColor(*[rand.randint(0, 255) for _ in range(3)]).to_colorhex(False), 100000))
         dc.SetBrush(wx.CYAN_BRUSH)
         dc.SetLogicalFunction(wx.AND_REVERSE)
         a = [wx.AND, wx.OR, wx.NOR, wx.NAND, wx.XOR, wx.AND_INVERT, wx.AND_REVERSE, wx.OR_INVERT, wx.OR_REVERSE]
         while True:
-            dc.SetPen(wx.Pen(Color(*[rand.randint(0, 255) for _ in range(3)]).to_colorhex(False), 100000))
+            dc.SetPen(wx.Pen(QColor(*[rand.randint(0, 255) for _ in range(3)]).to_colorhex(False), 100000))
             dc.SetBrush(wx.WHITE_BRUSH)
             dc.SetLogicalFunction(rand.choice(a))
             b = (rand.randint(0, screen_width), rand.randint(0, screen_height), rand.randint(1, screen_width),
@@ -478,8 +483,9 @@ if __name__ == '__main__':
 
         while True:
             w, h = screen_.get_size()
+            # noinspection PyArgumentList
             screen_.draw_line(rand.randint(0, w), rand.randint(0, h), rand.randint(0, w), rand.randint(0, h),
-                              Color(255, 0, 0))
+                              QColor(255, 0, 0))
 
 
     def test_random_mouse(dx, dy, speed):
@@ -525,7 +531,6 @@ if __name__ == '__main__':
 
             win32api.SetCursorPos((int(cx), int(cy)))
             time.sleep(0.001)
-
 
     # noinspection PyBroadException
     def suspend(hibernate=False):

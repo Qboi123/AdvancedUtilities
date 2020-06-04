@@ -1,6 +1,7 @@
 from io import BytesIO
 from typing import BinaryIO, Union
 
+from advUtils.core.decorators import experimental
 
 OPCODE_NOP = 0x0000  # No Operation
 OPCODE_ADD = 0x0001  # Calc: Add OP Code
@@ -55,6 +56,7 @@ OPCODE_SETPX = 0x00B0   # Screen: Set Pixel OP Code
 OPCODE_GETPX = 0x00B1   # Screen: Get Pixel OP Code
 
 
+@experimental
 class QCompiled(object):
     def __init__(self, rom: Union[BytesIO, BinaryIO]):
         self.rom = rom
@@ -77,10 +79,11 @@ class QCompiled(object):
 
             if opcode == bytes([OPCODE_SETX]):
                 ram_addr = self.advance(4)
+                # noinspection PyUnusedLocal
                 alloc_size = self.advance(4)
 
                 self.ram.writeat(ram_addr, )
 
     def advance(self, size=1):
         self.index += size
-        return self.read(size)
+        return self.read()

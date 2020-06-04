@@ -2,7 +2,7 @@
 import requests
 
 # Enter your API key here
-API_KEY = "ae0b207ae9b9b71f313481e733b8b912"
+API_KEY = None
 
 
 class TempKelvin(object):
@@ -59,6 +59,7 @@ city_name = input("Enter city name : ")
 
 # complete_url variable to store
 # complete url address
+# noinspection PyTypeChecker
 complete_url = base_url + "q=" + city_name + "&APPID=" + API_KEY
 
 # get method of requests module

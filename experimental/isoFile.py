@@ -3,18 +3,19 @@ from io import BytesIO
 
 import pycdlib
 
+from advUtils.core.decorators import experimental
+
+
+@experimental
 def test1():
     a = pycdlib.PyCdlib(True)
     a.new()
     a.write("test.iso")
     # a.write_fp()
 
-def test2():
-    try:
-        from cStringIO import StringIO as BytesIO
-    except ImportError:
-        from io import BytesIO
 
+@experimental
+def test2():
     import pycdlib
 
     iso = pycdlib.PyCdlib()
@@ -30,7 +31,6 @@ def test2():
     bazstr = b'bazzzzzz\n'
     iso.modify_file_in_place(BytesIO(bazstr), len(bazstr), '/FOO.;1')
 
-    modifiediso = BytesIO()
     iso.write("test2.iso")
     iso.close()
 
@@ -38,6 +38,7 @@ def test2():
     #     file.write(modifiediso.read())
 
 
+@experimental
 class IsoFile(object):
     def __init__(self, path, new=True, udf=True):
         self._iso = pycdlib.PyCdlib()
@@ -105,7 +106,8 @@ class IsoFile(object):
     def walk(self, path):
         return self._iso.walk(udf_path=path)
 
-    def _fix_path(self, path):
+    @staticmethod
+    def _fix_path(path):
         path.replace("\\", "/")
 
         while path[-1] == '/':

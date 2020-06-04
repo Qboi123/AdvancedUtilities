@@ -1,17 +1,18 @@
 # from __future__ import print_function
-
-from ctypes import windll, sizeof, c_uint
+import platform
+from ctypes import windll
 from threading import Thread, Event
-# from playsound import playsound()
 
-import win32api
 from overload import overload
 from past.builtins import unicode
-from psutil import Process, ZombieProcess, NoSuchProcess
-from pyGoogleSearch import Google as GoogleSearch
-from pywin.scintilla.keycodes import MAPVK_VK_TO_CHAR
-from win32api import MapVirtualKey, PostMessage, VkKeyScan
+from win32api import MapVirtualKey, PostMessage
 from win32con import WM_KEYDOWN, WM_KEYUP, VK_RIGHT
+
+from advUtils.core.decorators import readonly
+from advUtils.core.exceptions import PlatformNotSupportedError
+
+
+# from playsound import playsound()
 
 
 class Console(object):
@@ -201,6 +202,7 @@ class StoppableThread(Thread):
         self._stopEvent.is_set()
 
 
+@readonly("iconNames")
 class Notification(object):
     iconNames = ["info", "error", "warn"]
 
@@ -288,6 +290,7 @@ class Window(object):
         if platform.system() != "Windows":
             raise OSError("Needed Windows for using the Window class")
 
+        # noinspection PyPackageRequirements
         import win32gui
         import win32con
         self._wg = win32gui
@@ -305,11 +308,13 @@ class Window(object):
 
     @classmethod
     def get_parent(cls, hwnd):
+        # noinspection PyPackageRequirements
         import win32gui as wg
         return wg.GetParent(hwnd)
 
     @classmethod
     def get_foreground_window(cls):
+        # noinspection PyPackageRequirements
         import win32gui as wg
         return wg.GetForegroundWindow()
 
@@ -345,8 +350,8 @@ class TTS(object):
         Example
         --------
         >>> tts = TTS("en")
-        >>> tts.speak("This is a test message")
-        >>> tts.pspeak("This is a printed test message")
+        >>> tts_.speak("This is a test message")
+        >>> tts_.pspeak("This is a printed test message")
         This is a printed test message
 
         :param language: The language code for the speech
@@ -360,11 +365,11 @@ class TTS(object):
         from gtts import gTTS
         from playsound import playsound
         import os
-        from advUtils.advRandom import Random
+        from advUtils.advRandom import QRandom
 
         import tempfile
 
-        filename = f'temp_{Random().randomhex(range(0x10000000000, 0xFFFFFFFFFFF))[2:]}.mp3'
+        filename = f'temp_{QRandom().randhex(range(0x10000000000, 0xFFFFFFFFFFF))[2:]}.mp3'
         filename = os.path.join(tempfile.gettempdir(), filename)
 
         if debug:
@@ -385,22 +390,51 @@ class Translate(object):
         self.langFrom = from_
         self.langTo = to_
 
+        # noinspection PyPackageRequirements
+        import googletranslate as gtrans
+        self._gtrans = gtrans
+
     def translate(self, text):
-        pass
+        return self._gtrans.translate(text, self.langFrom, self.langTo)
 
 
 class Beep(object):
     def __init__(self, freq, dur):
+        if platform.system() != "Windows":
+            raise PlatformNotSupportedError("Needed win32api module")
+
         import win32api as wa
         wa.Beep(freq, dur)
 
 
+class PowerControl(object):
+    @classmethod
+    def shutdown(cls, delay=0):
+        if platform.system() == "Windows":
+            import os
+            os.system("shutdown /s /t %d" % delay)
+
+    @classmethod
+    def reboot(cls, delay=0):
+        if platform.system() == "Windows":
+            import os
+            os.system("shutdown /r /t %d" % delay)
+
+    @classmethod
+    def hibernate(cls, delay=0):
+        if platform.system() == "Windows":
+            import os
+            os.system("shutdown /h /t %d" % delay)
+        else:
+            raise PlatformNotSupportedError("Only supported on Windows")
+
+
 if __name__ == '__main__':
-    tts = TTS("en")
+    tts_ = TTS("en")
 
     def test_tts():
-        tts.speak("Test text, with single quotes")
-        tts.speak("""Test text, with triple quotes""")
+        tts_.speak("Test text, with single quotes")
+        tts_.speak("""Test text, with triple quotes""")
 
     def test_window_class():
         from tkinter import Tk
@@ -417,9 +451,10 @@ if __name__ == '__main__':
         # import ctypes.windll
         # import ctypes.wintypes
 
+        # noinspection PyPackageRequirements
         import pyWinhook as pyHook
 
-        def OnMouseEvent(event: pyHook.MouseEvent):
+        def on_mouse_event(event: pyHook.MouseEvent):
             print('MessageName: %s' % event.MessageName)
             print('Message: %s' % event.Message)
             print('Time: %s' % event.Time)
@@ -435,7 +470,7 @@ if __name__ == '__main__':
             # return False to stop the event from propagating
             return True
 
-        def OnKeyboardEvent(event):
+        def on_keyboard_event(event):
             print('MessageName: %s' % event.MessageName)
             print('Message: %s' % event.Message)
             print('Time: %s' % event.Time)
@@ -458,8 +493,8 @@ if __name__ == '__main__':
         # create the hook mananger
         hm = pyHook.HookManager()
         # register two callbacks
-        hm.MouseAllButtonsDown = OnMouseEvent
-        hm.KeyDown = OnKeyboardEvent
+        hm.MouseAllButtonsDown = on_mouse_event
+        hm.KeyDown = on_keyboard_event
 
         # hook into the mouse and keyboard events
         hm.HookMouse()
@@ -467,10 +502,18 @@ if __name__ == '__main__':
 
         if __name__ == '__main__':
             import pythoncom
+            # noinspection PyUnresolvedReferences
             pythoncom.PumpMessages()
         root.mainloop()
 
         # print(type(window.win32con.VK_RIGHT))
+
+    def test_translate():
+        trans = Translate("en", "nl")
+        print(trans.translate("Hello, i'm the craziest of the craziens!"))
+
+        transjp = Translate("en", "hi")
+        print(transjp.translate("Hello, i'm the craziest of the idiots!"))
 
     # for i in range(80, 800, 20):
     #     Beep(i, 1500)
@@ -478,3 +521,4 @@ if __name__ == '__main__':
     #     Beep(2400, 1200)
 
     # test_window_class()
+    test_translate()

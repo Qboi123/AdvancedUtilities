@@ -1,7 +1,7 @@
-from advUtils.miscellaneous import Color as _Color
+from advUtils.miscellaneous import QColor as _Color
 
 
-class Windows10Options(object):
+class QWindows10Options(object):
     def __init__(self):
         import winreg as registry
         self.reg = registry
@@ -36,13 +36,13 @@ class Windows10Options(object):
 
 if __name__ == '__main__':
     def test_win10options():
-        _win10options = Windows10Options()
+        _win10options = QWindows10Options()
         accent_color = _win10options.get_accentcolor()
         h, s, v = accent_color.to_hsv()
         # h = h / 209 * 203
         h = h - 5.775
         # v = v / 92 * 84
-        v = v - 8  #  - 5
+        v = v - 8  # - 5
         accent_color = _Color.from_hsv(h, s, v)
         # accent_color.g += 2
         print(accent_color.to_hsv())
@@ -57,5 +57,6 @@ if __name__ == '__main__':
         frame = tk.Frame(root, bg=accent_color.to_colorhex(False))
         frame.pack(fill="both", expand=True)
         root.mainloop()
+
 
     test_win10options()

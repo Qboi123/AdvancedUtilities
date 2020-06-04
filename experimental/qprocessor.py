@@ -1,6 +1,8 @@
 import sys
-from io import IOBase, BytesIO
+from io import BytesIO
 from tkinter import Tk, Canvas, TclError
+
+from advUtils.core.decorators import experimental
 
 RAM_SIZE = 0xffff
 print(RAM_SIZE)
@@ -28,10 +30,12 @@ OP_PLS = None
 OP_STP = 0xff
 
 
-class PowerIO(object):
+@experimental
+class QPowerIO(object):
     def __init__(self):
         pass
 
+    # noinspection PyUnusedLocal
     def write(self, byte: bytes):
         binary_byte = bin(int.from_bytes(byte, "big", signed=False))
         for i in range(8, len(binary_byte), -1):
@@ -49,7 +53,8 @@ class PowerIO(object):
         pass
 
 
-class Processor(object):
+@experimental
+class QProcessor(object):
     def __init__(self, rom: bytearray, dram: BytesIO):
         """
         Processor
@@ -65,7 +70,7 @@ class Processor(object):
         # self.rom.writable = lambda: False
         # self.rom.write = None
         # self.rom.writelines = None
-        self.powerIO = PowerIO()
+        self.powerIO = QPowerIO()
         self.screen = Screen(self.rom)
         self.lda: int = -1
 
@@ -99,7 +104,9 @@ class Processor(object):
         # self.advance()
         # self.exec_opcode(self.rom)
 
-    def exec_opcode(self, io, *, repeat=1):
+    # noinspection PyUnusedLocal
+    @staticmethod
+    def exec_opcode(io, *, repeat=1):
         while True:
             pass
 
@@ -200,7 +207,7 @@ def initialize_rom():
 class Screen(object):
     def __init__(self, rom, size=None):
         if size is None:
-            size = SCREENWIDTH * SCREENHEIGHT
+            pass
 
         self._root = Tk()
         self._canvas = Canvas(self._root, width=SCREENWIDTH*16, height=SCREENHEIGHT*16)
@@ -214,7 +221,8 @@ class Screen(object):
 
         for x in range(SCREENWIDTH):
             for y in range(SCREENHEIGHT):
-                self._chars[x, y] = self._canvas.create_text(x*16, y*16, text="\x00", anchor="nw", font=("Consolas", 11))
+                self._chars[x, y] = self._canvas.create_text(
+                    x*16, y*16, text="\x00", anchor="nw", font=("Consolas", 11))
 
         # b"\x00" * size
 
@@ -241,7 +249,7 @@ class Screen(object):
 if __name__ == '__main__':
     _rom = initialize_rom()
     _ram = RAM
-    proc = Processor(bytearray(_rom), BytesIO(_ram))
+    proc = QProcessor(bytearray(_rom), BytesIO(_ram))
     proc.exec()
 
     while True:

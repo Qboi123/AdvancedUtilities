@@ -1,21 +1,29 @@
+# Internal python modules.
 import platform
-import typing
-from typing import Optional, Tuple, List, Union, Iterable, NoReturn
+import tkinter as _tk
+import typing as _t
+from enum import Enum as _Enum
 
-# print(platform.system())
-from advUtils.code import HtmlCode
+# 3rd party modules.
+# noinspection PyPackageRequirements
+from Crypto.Cipher import ARC4 as _ARC4
+from PIL.Image import Image as _Image
+
+# Project modules
+from advUtils.code import HtmlCode as _HtmlCode
+from advUtils.system import PythonPath as _PythonPath
 
 if platform.system().lower() == "windows":
-    from win32comext.shell import shell, shellcon
+    from win32comext.shell import shell as _shell, shellcon as _shellcon
 
-    PLATFORM = "Platform::Windows"
+    _PLATFORM = "Platform::Windows"
 else:
-    PLATFORM = "Platform::Other"
+    _PLATFORM = "Platform::Other"
+    _shell = None
+    _shellcon = None
 
-from advUtils.system import PythonPath
-
-PLATFORM_WINDOWS = "Platform::Windows"
-PLATFORM_OTHER = "Platform::Other"
+_PLATFORM_WINDOWS = "Platform::Windows"
+_PLATFORM_OTHER = "Platform::Other"
 
 WINDOW_MINIMIZED = 7
 WINDOW_MAXIMIZED = 3
@@ -38,9 +46,10 @@ class Directory(object):
         try:
             self.relPath: str = os.path.relpath(path)
         except ValueError:
-            self.relPath: Optional[str] = None
+            self.relPath: _t.Optional[str] = None
 
-    def listdir(self, recursive=False, depth=5) -> List[Union['File', 'Directory']]:
+    # noinspection PyUnusedLocal
+    def listdir(self, recursive=False, depth=5) -> _t.List[_t.Union['File', 'Directory']]:
         """
         Indexes the directory
 
@@ -62,7 +71,7 @@ class Directory(object):
             pass
         return list_
 
-    def index(self, recursive=False, depth=5) -> List[Union['File', 'Directory']]:
+    def index(self, recursive=False, depth=5) -> _t.List[_t.Union['File', 'Directory']]:
         """
         Indexes the directory
 
@@ -77,13 +86,13 @@ class Directory(object):
         items = self.listdirs()
         dirs = items.copy()
         if recursive and depth > 0:
-            for dir in dirs:
-                items.extend(dir.index(recursive, depth-1))
+            for dir_ in dirs:
+                items.extend(dir_.index(recursive, depth - 1))
         list_.extend(items)
         list_.extend(self.listfiles())
         return list_
 
-    def listdirs(self) -> List['Directory']:
+    def listdirs(self) -> _t.List['Directory']:
         """
         Lists directories in the directory
 
@@ -99,7 +108,7 @@ class Directory(object):
             pass
         return list_
 
-    def listfiles(self) -> List['File']:
+    def listfiles(self) -> _t.List['File']:
         """
         Lists files in the directory.
 
@@ -116,7 +125,7 @@ class Directory(object):
         return list_
 
     @staticmethod
-    def _split_path(path: str) -> Tuple:
+    def _split_path(path: str) -> _t.Tuple:
         """
         Splits the path into a list, and then returns it.
 
@@ -168,10 +177,10 @@ class File(object):
         try:
             self.relPath: str = os.path.relpath(path)
         except ValueError:
-            self.relPath: Optional[str] = None
+            self.relPath: _t.Optional[str] = None
         self._os = os
 
-        self._fd: Optional[Union[typing.TextIO, typing.BinaryIO]] = None
+        self._fd: _t.Optional[_t.Union[_t.TextIO, _t.BinaryIO]] = None
         self._fileOpen = False
 
         try:
@@ -188,7 +197,7 @@ class File(object):
 
         self._os.startfile(self.path)
 
-    def open(self, mode="w") -> Union[typing.TextIO, typing.BinaryIO]:
+    def open(self, mode="w") -> _t.Union[_t.TextIO, _t.BinaryIO]:
         """
         Opens the file
 
@@ -198,7 +207,7 @@ class File(object):
 
         if not self._fileOpen:
             self._fileOpen = True
-            return open(self.path, mode)  # type: Union[typing.TextIO, typing.BinaryIO]
+            return open(self.path, mode)  # type: _t.Union[_t.TextIO, _t.BinaryIO]
         else:
             raise OSError(f"File {self.path} already opened")
 
@@ -284,7 +293,7 @@ class File(object):
         else:
             self._fd.write(repr(data))
 
-    def write_lines(self, data: Union[List, Tuple]) -> None:
+    def write_lines(self, data: _t.Union[_t.List, _t.Tuple]) -> None:
         """
         Writes a list or tuple of lines to the file
 
@@ -346,6 +355,7 @@ class File(object):
         self.open(mode="r+b")
         self._fd.seek(offset)
 
+        # noinspection PyTypeChecker,PyTypeChecker
         return self._fd.read(size)
 
     def create(self, size=0):
@@ -501,7 +511,7 @@ class PythonFile(File):
         self._sys = sys
         self._subps = subprocess
 
-        self._pythonPath: Optional[PythonPath] = None
+        self._pythonPath: _t.Optional[_PythonPath] = None
 
     def import_(self):
         """
@@ -511,7 +521,7 @@ class PythonFile(File):
         :return:
         """
 
-        self._pythonPath = PythonPath()
+        self._pythonPath = _PythonPath()
         self._pythonPath.add(self.directory.absPath)
         import_ = __import__(self._os.path.splitext(self.fileName)[0])
         self._pythonPath.remove(self.directory.absPath)
@@ -535,6 +545,31 @@ class PythonFile(File):
 
     def subprocess(self, *args):
         self._subps.run([self._sys.executable, self.absPath, *args])
+
+    def pycompile(self, to: str):
+        """
+        Compiles using the py_compile module.
+
+        :param to:
+        :return:
+        """
+
+        if not to.endswith(".pyc"):
+            raise ValueError("invalid argument 'to', file must have the .pyc extension")
+
+        from py_compile import compile
+        return compile(self.path, cfile=to)
+
+    def compile(self, mode, optimize=2):
+        """
+        Compiles using the built-in compiler function.
+
+        :param mode: The compiling mode.
+        :param optimize: Compilation optimization level, 0 means no optimization, 1 means low level optimization,
+                         2 means high level optimization.
+        :return:
+        """
+        return compile(self.read(), self.fileName, mode, optimize=optimize)
 
 
 class JsonFile(File):
@@ -593,7 +628,6 @@ class PickleFile(File):
         """
         Reads a pickle file
 
-        :param kwargs:
         :return:
         """
 
@@ -632,7 +666,6 @@ class DillFile(File):
         """
         Reads a pickle file
 
-        :param kwargs:
         :return:
         """
 
@@ -678,7 +711,7 @@ class YamlFile(File):
 
         if len(kwargs.keys()) != 0:
             raise ValueError("Method 'read()' doesn't take keyword arguments")
-        data = super().read()
+        data = super().readstring()
         stream = self._io.StringIO(data)
         self._yaml.full_load(stream)
         stream.close()
@@ -853,9 +886,10 @@ class ZippedFile(object):
 
         self.fileName = self._os.path.split(path)[-1]
 
-        self._fd: Optional[zipfile.ZipExtFile] = None
+        self._fd: _t.Optional[zipfile.ZipExtFile] = None
         self._fileOpen = False
 
+    # noinspection PyUnusedLocal
     def read(self, size=None):
         with self.zipFormatFile.zipfile.open(self.zipFormatFile.get_fp(self.path)[:], "r") as file:
             data = file.read()
@@ -866,7 +900,7 @@ class ZippedFile(object):
             data = file.readline(limit=size)
         return data
 
-    def write(self, data: Union[bytes, bytearray]):
+    def write(self, data: _t.Union[bytes, bytearray]):
         with self.zipFormatFile.zipfile.open(self.path, "w", self.password) as file:
             file.write(data)
 
@@ -996,7 +1030,7 @@ class ZipArchive(ZippedDirectory):
         try:
             self.relPath: str = os.path.relpath(path)
         except ValueError:
-            self.relPath: Optional[str] = None
+            self.relPath: _t.Optional[str] = None
 
 
 class NZTFile(ZipArchive):
@@ -1021,7 +1055,7 @@ class NZTFile(ZipArchive):
         self._pickle.dump(value, a, 4)
         a.close()
 
-    def _save(self, fp: str, data: Union[dict, list, tuple]):
+    def _save(self, fp: str, data: _t.Union[dict, list, tuple]):
         # print("LISTDIR:", fp)
         if type(data) == dict:
             for key, value in data.items():
@@ -1134,7 +1168,7 @@ class NZTFile(ZipArchive):
     def _load_value(self, zipped_file: ZippedFile):
         return self._pickle.loads(zipped_file.read())
 
-    def _load(self, zipped_dir: ZippedDirectory, data: Union[dict, list, tuple]):
+    def _load(self, zipped_dir: ZippedDirectory, data: _t.Union[dict, list, tuple]):
         # print("ZIPPED DIR PATH:", zipped_dir.path)
         # print("ZIPPED DIR INDEX:", zipped_dir.index())
         index = zipped_dir.index()
@@ -1217,6 +1251,35 @@ class NZTFile(ZipArchive):
         self.zipFormatFile.close()
 
 
+class EncryptedFile(File):
+    def __init__(self, path, key):
+        """
+        Uses ARC4 to encrypt.
+
+        :param path:
+        """
+        super(EncryptedFile, self).__init__(path)
+        self.key = key
+
+    # noinspection PyMethodOverriding
+    def read(self, size=None):
+        if size is not None:
+            raise ValueError("The size argument must not be specified")
+
+        fd = self.open("rb+")
+        encrypted_data = fd.read()
+        if isinstance(encrypted_data, bytes):
+            data = _ARC4.ARC4Cipher(self.key).decrypt(encrypted_data)
+        else:
+            raise IOError(f"Invalid data, expected bytes not {type(encrypted_data).__name__}")
+        return data
+
+    def write(self, data: bytes):
+        fd = self.open("wb+")
+        encrypted_data = _ARC4.ARC4Cipher(self.key).encrypt(data)
+        fd.write(encrypted_data)
+
+
 class NZT2File(NZTFile):
     def __init__(self, path, mode="r"):
         super(NZT2File, self).__init__(path, mode)
@@ -1241,7 +1304,7 @@ class TextFile(File):
             file.close()
         return data
 
-    def readlines(self, hint=None) -> List[str]:
+    def readlines(self, hint=None) -> _t.List[str]:
         with open(self.path, "r") as file:
             data = file.readlines(hint)
             file.close()
@@ -1259,19 +1322,20 @@ class TextFile(File):
         self.open(mode="r+b")
         self._fd.seek(offset)
 
+        # noinspection PyUnresolvedReferences
         return self._fd.read(size).decode()
 
-    def write(self, o: str = "") -> NoReturn:
+    def write(self, o: str = "") -> _t.NoReturn:
         with open(self.path, "w") as file:
             file.write(o)
             file.close()
 
-    def writelines(self, lines: Iterable[str]) -> NoReturn:
+    def writelines(self, lines: _t.Iterable[str]) -> _t.NoReturn:
         with open(self.path, "w") as file:
             file.writelines(lines)
             file.close()
 
-    def write_at(self, offset: int, data: str) -> NoReturn:
+    def write_at(self, offset: int, data: str) -> _t.NoReturn:
         """
         Writes value on the given offset, non-string or non-bytes value will use repr()
 
@@ -1306,7 +1370,7 @@ class BinaryFile(File):
             file.close()
         return data
 
-    def readlines(self, hint=None) -> List[bytes]:
+    def readlines(self, hint=None) -> _t.List[bytes]:
         with open(self.path, "rb") as file:
             data = file.readlines(hint)
             file.close()
@@ -1324,19 +1388,20 @@ class BinaryFile(File):
         self.open(mode="r+b")
         self._fd.seek(offset)
 
+        # noinspection PyTypeChecker
         return self._fd.read(size)
 
-    def write(self, o: bytes = b"") -> NoReturn:
+    def write(self, o: bytes = b"") -> _t.NoReturn:
         with open(self.path, "wb") as file:
             file.write(o)
             file.close()
 
-    def writelines(self, lines: Iterable[bytes]) -> NoReturn:
+    def writelines(self, lines: _t.Iterable[bytes]) -> _t.NoReturn:
         with open(self.path, "wb") as file:
             file.writelines(lines)
             file.close()
 
-    def write_at(self, offset: int, data: bytes) -> NoReturn:
+    def write_at(self, offset: int, data: bytes) -> _t.NoReturn:
         """
         Writes value on the given offset, non-string or non-bytes value will use repr()
 
@@ -1375,7 +1440,7 @@ class TomlFile(File):
             data = self._toml.loads(file.read())
         return data
 
-    def write(self, o: dict) -> NoReturn:
+    def write(self, o: dict) -> _t.NoReturn:
         with open(self.path, "w") as file:
             file.write(self._toml.dumps(o))
 
@@ -1384,15 +1449,28 @@ class HtmlFile(File):
     def __init__(self, path):
         super(HtmlFile, self).__init__(path)
 
-    def get_code_class(self) -> HtmlCode:
+    def get_code_class(self) -> _HtmlCode:
         fd = self.open("r")
-        code = HtmlCode(fd.read())
+        code = _HtmlCode(fd.read())
         fd.close()
         return code
 
 
+class PngFile(File):
+    def __init__(self, path):
+        super(PngFile, self).__init__(path)
+
+    def get_pillowimage(self, filemode="r") -> _Image:
+        from PIL.Image import open
+        return open(self.absPath, filemode)
+
+    def get_tkimage(self) -> _tk.PhotoImage:
+        from tkinter import PhotoImage
+        return PhotoImage(file=self.absPath)
+
+
 class WindowsShortcut(File):
-    if PLATFORM != PLATFORM_WINDOWS:
+    if _PLATFORM != _PLATFORM_WINDOWS:
         raise OSError("WindowsShortcut(...) is Windows-only")
 
     def __init__(self, path):
@@ -1401,25 +1479,23 @@ class WindowsShortcut(File):
         # Import modules
         import sys
         import pythoncom
-        from win32comext.shell import shell, shellcon
 
         # Make attribytes for modules
         self._sys = sys
         self._pycom = pythoncom
-        self._shell = shell
-        self._shellcon = shellcon
+        self._shell = _shell
+        self._shellcon = _shellcon
 
-    def _create_old(self, dest: str = "", description: str = "", icon: Optional[Tuple[str, int]] = None):
+    def _create_old(self, dest: str = "", description: str = "", icon: _t.Optional[_t.Tuple[str, int]] = None):
         import sys
-        from win32comext.shell import shell
         from comtypes import CLSCTX_INPROC_SERVER, CoCreateInstance
         from comtypes.persist import IPersistFile
 
         shortcut = CoCreateInstance(
-            shell.CLSID_ShellLink,
+            _shell.CLSID_ShellLink,
             None,
             CLSCTX_INPROC_SERVER,
-            shell.IID_IShellLink
+            _shell.IID_IShellLink
         )
 
         shortcut.SetPath(dest)
@@ -1432,7 +1508,7 @@ class WindowsShortcut(File):
         persist_file = shortcut.QueryInterface(IPersistFile)
         persist_file.Save(self.path, 0)
 
-    def create(self, target: str = "", icon: Tuple[str, int] = None, is_threaded=False, windows_state=WINDOW_NORMAL):
+    def create(self, target: str = "", icon: _t.Tuple[str, int] = None, is_threaded=False, windows_state=WINDOW_NORMAL):
         import win32com.client
         import os
         from comtypes import CoInitialize
@@ -1451,75 +1527,80 @@ class WindowsShortcut(File):
         shortcut.save()
 
 
-class WinSpecialFolders(object):
-    if PLATFORM != PLATFORM_WINDOWS:
-        raise OSError("WinSpecialFolders(...) is Windows-only")
-
-    Fonts = shell.SHGetFolderPath(0, shellcon.CSIDL_FONTS, 0, 0)
-    # Drives = shell.SHGetFolderPath(0, shellcon.CSIDL_DRIVES, 0, 0)  # Has problems
-    Recent = shell.SHGetFolderPath(0, shellcon.CSIDL_RECENT, 0, 0)
-    SendTo = shell.SHGetFolderPath(0, shellcon.CSIDL_SENDTO, 0, 0)
-    System = shell.SHGetFolderPath(0, shellcon.CSIDL_SYSTEM, 0, 0)
-    AppData = shell.SHGetFolderPath(0, shellcon.CSIDL_APPDATA, 0, 0)
-    Cookies = shell.SHGetFolderPath(0, shellcon.CSIDL_COOKIES, 0, 0)
-    Desktop = shell.SHGetFolderPath(0, shellcon.CSIDL_DESKTOP, 0, 0)
-    History = shell.SHGetFolderPath(0, shellcon.CSIDL_HISTORY, 0, 0)
-    MyMusic = shell.SHGetFolderPath(0, shellcon.CSIDL_MYMUSIC, 0, 0)
-    MyVideo = shell.SHGetFolderPath(0, shellcon.CSIDL_MYVIDEO, 0, 0)
-    NetHood = shell.SHGetFolderPath(0, shellcon.CSIDL_NETHOOD, 0, 0)
-    # Network = shell.SHGetFolderPath(0, shellcon.CSIDL_NETWORK, 0, 0)  # Has problems
-    Profile = shell.SHGetFolderPath(0, shellcon.CSIDL_PROFILE, 0, 0)
-    Windows = shell.SHGetFolderPath(0, shellcon.CSIDL_WINDOWS, 0, 0)
-    # Controls = shell.SHGetFolderPath(0, shellcon.CSIDL_CONTROLS, 0, 0)  # Has problems
-    # Internet = shell.SHGetFolderPath(0, shellcon.CSIDL_INTERNET, 0, 0)  # Has problems
-    Personal = shell.SHGetFolderPath(0, shellcon.CSIDL_PERSONAL, 0, 0)
-    # Printers = shell.SHGetFolderPath(0, shellcon.CSIDL_PRINTERS, 0, 0)  # Has problems
-    Programs = shell.SHGetFolderPath(0, shellcon.CSIDL_PROGRAMS, 0, 0)
-    Favorites = shell.SHGetFolderPath(0, shellcon.CSIDL_FAVORITES, 0, 0)
-    PrintHood = shell.SHGetFolderPath(0, shellcon.CSIDL_PRINTHOOD, 0, 0)
-    Resources = shell.SHGetFolderPath(0, shellcon.CSIDL_RESOURCES, 0, 0)
-    StartMenu = shell.SHGetFolderPath(0, shellcon.CSIDL_STARTMENU, 0, 0)
-    SystemX86 = shell.SHGetFolderPath(0, shellcon.CSIDL_SYSTEMX86, 0, 0)
-    Templates = shell.SHGetFolderPath(0, shellcon.CSIDL_TEMPLATES, 0, 0)
-    AdminTools = shell.SHGetFolderPath(0, shellcon.CSIDL_ADMINTOOLS, 0, 0)
-    MyPictures = shell.SHGetFolderPath(0, shellcon.CSIDL_MYPICTURES, 0, 0)
-    CdBurnArea = shell.SHGetFolderPath(0, shellcon.CSIDL_CDBURN_AREA, 0, 0)
-    # Connections = shell.SHGetFolderPath(0, shellcon.CSIDL_CONNECTIONS, 0, 0)  # Has problems
-    # MyDocuments = shell.SHGetFolderPath(0, shellcon.CSIDL_MYDOCUMENTS, 0, 0)  # Has problems
-    CommonMusic = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_MUSIC, 0, 0)
-    CommonVideo = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_VIDEO, 0, 0)
-    LocalAppData = shell.SHGetFolderPath(0, shellcon.CSIDL_LOCAL_APPDATA, 0, 0)
-    CommonAppData = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_APPDATA, 0, 0)
-    CommonStartup = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_STARTUP, 0, 0)
-    InternetCache = shell.SHGetFolderPath(0, shellcon.CSIDL_INTERNET_CACHE, 0, 0)
-    CommonPictures = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_PICTURES, 0, 0)
-    CommonPrograms = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_PROGRAMS, 0, 0)
-    # CommonOEMLinks = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_OEM_LINKS, 0, 0)  # Has problems
-    # ComputersNearMe = shell.SHGetFolderPath(0, shellcon.CSIDL_COMPUTERSNEARME, 0, 0)  # Has problems
-    CommonDocuments = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_DOCUMENTS, 0, 0)
-    CommonFavorites = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_FAVORITES, 0, 0)
-    CommonStartMenu = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_STARTMENU, 0, 0)
-    CommonTemplates = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_TEMPLATES, 0, 0)
-    ProgramFilesX86 = shell.SHGetFolderPath(0, shellcon.CSIDL_PROGRAM_FILESX86, 0, 0)
-    DesktopDirectory = shell.SHGetFolderPath(0, shellcon.CSIDL_DESKTOPDIRECTORY, 0, 0)
-    CommonAdminTools = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_ADMINTOOLS, 0, 0)
-    CommonAltStartup = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_ALTSTARTUP, 0, 0)
-    # ResourcesLocalized = shell.SHGetFolderPath(0, shellcon.CSIDL_RESOURCES_LOCALIZED, 0, 0)  # Has problems
-    ProgramFilesCommon = shell.SHGetFolderPath(0, shellcon.CSIDL_PROGRAM_FILES_COMMON, 0, 0)
-    ProgramFilesCommonX86 = shell.SHGetFolderPath(0, shellcon.CSIDL_PROGRAM_FILES_COMMONX86, 0, 0)
-    CommonDesktopDirectory = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_DESKTOPDIRECTORY, 0, 0)
+class WinSpecialFolders(_Enum):
+    if _shell is not None:
+        if _shellcon is not None:
+            Fonts = _shell.SHGetFolderPath(0, _shellcon.CSIDL_FONTS, 0, 0)
+            # Drives = shell.SHGetFolderPath(0, shellcon.CSIDL_DRIVES, 0, 0)  # Has problems
+            Recent = _shell.SHGetFolderPath(0, _shellcon.CSIDL_RECENT, 0, 0)
+            SendTo = _shell.SHGetFolderPath(0, _shellcon.CSIDL_SENDTO, 0, 0)
+            System = _shell.SHGetFolderPath(0, _shellcon.CSIDL_SYSTEM, 0, 0)
+            AppData = _shell.SHGetFolderPath(0, _shellcon.CSIDL_APPDATA, 0, 0)
+            Cookies = _shell.SHGetFolderPath(0, _shellcon.CSIDL_COOKIES, 0, 0)
+            Desktop = _shell.SHGetFolderPath(0, _shellcon.CSIDL_DESKTOP, 0, 0)
+            History = _shell.SHGetFolderPath(0, _shellcon.CSIDL_HISTORY, 0, 0)
+            MyMusic = _shell.SHGetFolderPath(0, _shellcon.CSIDL_MYMUSIC, 0, 0)
+            MyVideo = _shell.SHGetFolderPath(0, _shellcon.CSIDL_MYVIDEO, 0, 0)
+            NetHood = _shell.SHGetFolderPath(0, _shellcon.CSIDL_NETHOOD, 0, 0)
+            # Network = shell.SHGetFolderPath(0, shellcon.CSIDL_NETWORK, 0, 0)  # Has problems
+            Profile = _shell.SHGetFolderPath(0, _shellcon.CSIDL_PROFILE, 0, 0)
+            Windows = _shell.SHGetFolderPath(0, _shellcon.CSIDL_WINDOWS, 0, 0)
+            # Controls = shell.SHGetFolderPath(0, shellcon.CSIDL_CONTROLS, 0, 0)  # Has problems
+            # Internet = shell.SHGetFolderPath(0, shellcon.CSIDL_INTERNET, 0, 0)  # Has problems
+            Personal = _shell.SHGetFolderPath(0, _shellcon.CSIDL_PERSONAL, 0, 0)
+            # Printers = shell.SHGetFolderPath(0, shellcon.CSIDL_PRINTERS, 0, 0)  # Has problems
+            Programs = _shell.SHGetFolderPath(0, _shellcon.CSIDL_PROGRAMS, 0, 0)
+            Favorites = _shell.SHGetFolderPath(0, _shellcon.CSIDL_FAVORITES, 0, 0)
+            PrintHood = _shell.SHGetFolderPath(0, _shellcon.CSIDL_PRINTHOOD, 0, 0)
+            Resources = _shell.SHGetFolderPath(0, _shellcon.CSIDL_RESOURCES, 0, 0)
+            StartMenu = _shell.SHGetFolderPath(0, _shellcon.CSIDL_STARTMENU, 0, 0)
+            SystemX86 = _shell.SHGetFolderPath(0, _shellcon.CSIDL_SYSTEMX86, 0, 0)
+            Templates = _shell.SHGetFolderPath(0, _shellcon.CSIDL_TEMPLATES, 0, 0)
+            AdminTools = _shell.SHGetFolderPath(0, _shellcon.CSIDL_ADMINTOOLS, 0, 0)
+            MyPictures = _shell.SHGetFolderPath(0, _shellcon.CSIDL_MYPICTURES, 0, 0)
+            CdBurnArea = _shell.SHGetFolderPath(0, _shellcon.CSIDL_CDBURN_AREA, 0, 0)
+            # Connections = shell.SHGetFolderPath(0, shellcon.CSIDL_CONNECTIONS, 0, 0)  # Has problems
+            # MyDocuments = shell.SHGetFolderPath(0, shellcon.CSIDL_MYDOCUMENTS, 0, 0)  # Has problems
+            CommonMusic = _shell.SHGetFolderPath(0, _shellcon.CSIDL_COMMON_MUSIC, 0, 0)
+            CommonVideo = _shell.SHGetFolderPath(0, _shellcon.CSIDL_COMMON_VIDEO, 0, 0)
+            LocalAppData = _shell.SHGetFolderPath(0, _shellcon.CSIDL_LOCAL_APPDATA, 0, 0)
+            CommonAppData = _shell.SHGetFolderPath(0, _shellcon.CSIDL_COMMON_APPDATA, 0, 0)
+            CommonStartup = _shell.SHGetFolderPath(0, _shellcon.CSIDL_COMMON_STARTUP, 0, 0)
+            InternetCache = _shell.SHGetFolderPath(0, _shellcon.CSIDL_INTERNET_CACHE, 0, 0)
+            CommonPictures = _shell.SHGetFolderPath(0, _shellcon.CSIDL_COMMON_PICTURES, 0, 0)
+            CommonPrograms = _shell.SHGetFolderPath(0, _shellcon.CSIDL_COMMON_PROGRAMS, 0, 0)
+            # CommonOEMLinks = shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_OEM_LINKS, 0, 0)  # Has problems
+            # ComputersNearMe = shell.SHGetFolderPath(0, shellcon.CSIDL_COMPUTERSNEARME, 0, 0)  # Has problems
+            CommonDocuments = _shell.SHGetFolderPath(0, _shellcon.CSIDL_COMMON_DOCUMENTS, 0, 0)
+            CommonFavorites = _shell.SHGetFolderPath(0, _shellcon.CSIDL_COMMON_FAVORITES, 0, 0)
+            CommonStartMenu = _shell.SHGetFolderPath(0, _shellcon.CSIDL_COMMON_STARTMENU, 0, 0)
+            CommonTemplates = _shell.SHGetFolderPath(0, _shellcon.CSIDL_COMMON_TEMPLATES, 0, 0)
+            ProgramFilesX86 = _shell.SHGetFolderPath(0, _shellcon.CSIDL_PROGRAM_FILESX86, 0, 0)
+            DesktopDirectory = _shell.SHGetFolderPath(0, _shellcon.CSIDL_DESKTOPDIRECTORY, 0, 0)
+            CommonAdminTools = _shell.SHGetFolderPath(0, _shellcon.CSIDL_COMMON_ADMINTOOLS, 0, 0)
+            CommonAltStartup = _shell.SHGetFolderPath(0, _shellcon.CSIDL_COMMON_ALTSTARTUP, 0, 0)
+            # ResourcesLocalized = shell.SHGetFolderPath(0, shellcon.CSIDL_RESOURCES_LOCALIZED, 0, 0)  # Has problems
+            ProgramFilesCommon = _shell.SHGetFolderPath(0, _shellcon.CSIDL_PROGRAM_FILES_COMMON, 0, 0)
+            ProgramFilesCommonX86 = _shell.SHGetFolderPath(0, _shellcon.CSIDL_PROGRAM_FILES_COMMONX86, 0, 0)
+            CommonDesktopDirectory = _shell.SHGetFolderPath(0, _shellcon.CSIDL_COMMON_DESKTOPDIRECTORY, 0, 0)
 
 
 PickledFile = PickleFile
 
 if __name__ == '__main__':
-    print(WinSpecialFolders.Profile)
-    print(WinSpecialFolders.AppData)
-    print(WinSpecialFolders.Desktop)
-    print(WinSpecialFolders.Recent)
-    print(WinSpecialFolders.CommonAppData)
+    def test_winspecialfolders():
+        print(WinSpecialFolders.Profile)
+        print(WinSpecialFolders.AppData)
+        print(WinSpecialFolders.Desktop)
+        print(WinSpecialFolders.Recent)
+        print(WinSpecialFolders.CommonAppData)
 
-    print(Directory("/").index(recursive=True, depth=2))
+        print(Directory("/").index(recursive=True, depth=2))
 
-    import os as _os
-    ExecutableFile("C:/Windows/notepad.exe").start(_os.path.join(WinSpecialFolders.Desktop, "TestDocument.txt"))
+    def test_winexecutable():
+        import os as _os
+        ExecutableFile(
+            "C:/Windows/notepad.exe"
+        ).start(_os.path.join(str(WinSpecialFolders.Desktop), "TestDocument.txt"))
+
+    test_winexecutable()

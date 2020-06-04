@@ -1,5 +1,5 @@
 import socketserver
-from typing import Union, Callable
+from typing import Union, Callable, Any
 import win32net
 
 import wx
@@ -43,22 +43,23 @@ class _Utils:
 
 class Downloader(object):
     def __init__(self, url, file):
+        # noinspection PyProtectedMember
         """
-        Download a file from the specified URL and save it to the specified filepath (file)
+                Download a file from the specified URL and save it to the specified filepath (file)
 
-        Example
-        --------
-        >>> import time
-        >>> download = Downloader("https://www.google.com/", "./googlesite.html")
-        >>> download.download()
-        >>> while download.is_downloading():
-        ...     print(f"Status: downloaded {download.totalDownloaded} of {download.fileTotalbytes}")
-        ...     time.sleep(1)   # wait a second before printing the status again
-        >>> print(f"Download of {download._url} is completed!")
+                Example
+                --------
+                >>> import time
+                >>> download = Downloader("https://www.google.com/", "./googlesite.html")
+                >>> download.download()
+                >>> while download.is_downloading():
+                ...     print(f"Status: downloaded {download.totalDownloaded} of {download.fileTotalbytes}")
+                ...     time.sleep(1)   # wait a second before printing the status again
+                >>> print(f"Download of {download._url} is completed!")
 
-        :param url: The URL to download
-        :param file: The filepath to write it to.
-        """
+                :param url: The URL to download
+                :param file: The filepath to write it to.
+                """
 
         # InfoNone
         self._url = url
@@ -203,11 +204,15 @@ class Downloader(object):
         t_.start()
         return t_
 
+    def is_downloading(self):
+        return self.downloadActive
+
 
 class Server(object):
     "A class for a Server instance."""
 
     def __init__(self, port_):
+        # noinspection PyUnresolvedReferences
         """
         Server constructor, used for communicate between client and server.
 
@@ -216,19 +221,19 @@ class Server(object):
         Example
         --------
         >>> def s_runner(conn, secret):
-        ...     import random
-        ...     pak = PackageSystem(conn)
-        ...     for i in range(1):
-        ...         b = []
-        ...         for _ in range(16):
-        ...             b.append(chr(random.randint(64, 96)))
-        ...         a = f"{''.join(b)}"
-        ...         b = random.randint(-5000, +5000)
-        ...         pak.send(a)
-        ...         pak.send(b)
-        ...         pak.send(list(a))
-        ...     exit(0)
-        ...
+        >>>     import random
+        >>>     pak = PacketSystem(conn)
+        >>>     for i in range(1):
+        >>>         b = []
+        >>>         for _ in range(16):
+        >>>             b.append(chr(random.randint(64, 96)))
+        >>>         a = f"{''.join(b)}"
+        >>>         b = random.randint(-5000, +5000)
+        >>>         pak.send(a)
+        >>>         pak.send(b)
+        >>>         pak.send(list(a))
+        >>>     exit(0)
+        >>>
         >>> server_ = Server(36673)
         >>> server_.runner = s_runner
         >>> server_.start()
@@ -236,10 +241,7 @@ class Server(object):
         :param port_: The port number to use for the server, used for clients to connect to
         """
 
-        # super(Server, self).__init__(chat_text)
         self.port = port_
-        # self.chatText = chat_text
-        # self.network = network
 
         self.preInitHook: Callable = lambda server, sock1, sock2: None
         self.postInitHook: Callable = lambda server, conn, addr, secret: None
@@ -305,7 +307,7 @@ class Server(object):
             s.listen(1)
 
             conn_init, addr_init = s.accept()
-            pak_init = PackageSystem(conn_init)
+            pak_init = PacketSystem(conn_init)
             serv = self._socket.socket(self._socket.AF_INET, self._socket.SOCK_STREAM)
             serv.bind(('', 0))  # get a random empty port_
 
@@ -320,7 +322,7 @@ class Server(object):
             conn_init.close()
             conn, addr = serv.accept()
 
-            pak = PackageSystem(conn)
+            pak = PacketSystem(conn)
 
             self.conn_array.append(conn)  # add an array entry for this connection
             self.event(CONN_SUCCESS, self)
@@ -351,7 +353,7 @@ class Server(object):
             pak.send(prime)
             pak.send(pow(base, a))
 
-            b = PackageReciever(conn).recv()
+            b = PacketReciever(conn).recv()
 
             # calculate the encryption key
             secret = pow(b, a) % prime
@@ -382,28 +384,29 @@ class Client(object):
     """
 
     def __init__(self, host, port_):
+        # noinspection PyUnresolvedReferences
         """
-        Client constructor, used for communicate between client and server.
+                Client constructor, used for communicate between client and server.
 
-        You can use it for multiplayer in a game, and this should be used for the user side.
+                You can use it for multiplayer in a game, and this should be used for the user side.
 
-        Example
-        --------
-        >>> def c_runner(conn, secret):
-        ...     pak = PackageSystem(conn)
-        ...     for i in range(3):
-        ...         recieved = pak.recv()
-        ...         print(f"Recieved Type: {type(recieved)}")
-        ...         print(f"Recieved Data: {recieved}")
-        ...     exit(0)
-        ...
-        >>> client_ = Client("127.0.0.1", 36673)
-        >>> client_.runner = c_runner
-        >>> client_.start()
+                Example
+                --------
+                >>> def c_runner(conn, secret):
+                ...     pak = PacketSystem(conn)
+                ...     for i in range(3):
+                ...         recieved = pak.recv()
+                ...         print(f"Recieved Type: {type(recieved)}")
+                ...         print(f"Recieved Data: {recieved}")
+                ...     exit(0)
+                ...
+                >>> client_ = Client("127.0.0.1", 36673)
+                >>> client_.runner = c_runner
+                >>> client_.start()
 
-        :param host: The IP adress for the client
-        :param port_: The port number for the client
-        """
+                :param host: The IP adress for the client
+                :param port_: The port number for the client
+                """
         # super(Client, self).__init__(chat_text)
         self.port = port_
         self.host = host
@@ -445,7 +448,7 @@ class Client(object):
 
         conn_init2 = self._socket.socket(self._socket.AF_INET, self._socket.SOCK_STREAM)
         conn_init2.settimeout(5.0)
-        pak_init = PackageSystem(conn_init2)
+        pak_init = PacketSystem(conn_init2)
         try:
             conn_init2.connect((self.host, self.port))
         except self._socket.timeout:
@@ -464,7 +467,7 @@ class Client(object):
         # New connection
         conn = self._socket.socket(self._socket.AF_INET, self._socket.SOCK_STREAM)
         conn.connect((self.host, porte))
-        pak = PackageSystem(conn)
+        pak = PacketSystem(conn)
 
         self.event(CONN_SUCCESS, self)
 
@@ -499,36 +502,77 @@ class Client(object):
         return t_
 
 
-class PackageEncoder(object):
+class PacketEncoder(object):
     def __init__(self, data):
         self.data = data
 
-        import pickle
-        self._pickle = pickle
+        import dill as dill
+        self._dill = dill
 
     def get_encoded(self):
-        data = self._pickle.dumps(self.data)
+        data = self._dill.dumps(self.data)
         length = len(data)
 
         return length, data
 
+    @classmethod
+    def dump(cls, data, stream) -> None:
+        import dill
 
-class PackageDecoder(object):
+        stream.seek(0)
+        dill.dump(data, stream)
+
+    @classmethod
+    def dumps(cls, data) -> bytes:
+        import dill
+
+        return dill.dumps(data)
+
+
+class PacketDecoder(object):
     def __init__(self, data: bytes):
         self.data = data
 
-        import pickle
-        self._pickle = pickle
+        import dill as dill
+        self._dill = dill
 
     def get_decoded(self):
-        data = self._pickle.loads(self.data)
+        data = self._dill.loads(self.data)
 
         return data
 
+    @classmethod
+    def load(cls, stream) -> Any:
+        """
+        Loads dilled data from the stream, and returns the normalized data.
 
-class PackageSender(object):
-    def __init__(self, conn, data):
-        self._length, self._data = PackageEncoder(data).get_encoded()
+        :param stream:
+        :return:
+        """
+
+        import dill
+
+        stream.seek(0)
+        return dill.load(stream)
+
+    @classmethod
+    def loads(cls, data) -> Any:
+        """
+        Loads dilled data and returns the normalized data.
+
+        :param data:
+        :return:
+        """
+
+        import dill
+
+        return dill.loads(data)
+
+
+class PacketSender(object):
+    def __init__(self, conn, data, len_bytesize=8):
+        self.lengthByteSize = len_bytesize
+        self._length, self._data = PacketEncoder(data).get_encoded()
 
         import socket
         import socketserver
@@ -536,93 +580,131 @@ class PackageSender(object):
         self.conn: Union[socket.socket, socketserver.BaseRequestHandler] = conn
 
     def send(self):
-        len_str = str(self._length)
-
-        for _ in range(32, len(len_str), -1):
-            len_str = "0" + len_str
-
-        self.conn.send(len_str.encode())
+        self.conn.send(self._length.to_bytes(self.lengthByteSize, "big", signed=False))
         self.conn.send(self._data)
 
     def sendall(self):
         if not issubclass(type(self.conn), socketserver.BaseRequestHandler):
-            raise Exception()
+            raise Exception(f"the conn argument and attribute of {self.__class__.__name__}() "
+                            f"must be a subclass of socketserver.BaseRequestHandler")
 
-        len_str = str(self._length)
-
-        for _ in range(32, len(len_str), -1):
-            len_str = "0" + len_str
-
-        self.conn.sendall(len_str.encode())
+        self.conn.sendall(self._length.to_bytes(self.lengthByteSize, "big", signed=False))
         self.conn.sendall(self._data)
 
+    def __repr__(self):
+        if self.lengthByteSize == 8:
+            return f"<{self.__class__.__name__} data={repr(self._data)}>"
+        else:
+            return f"<{self.__class__.__name__} data={repr(self._data)} len_bytesize={repr(self.lengthByteSize)}>"
 
-class PackageReciever(object):
+
+class PacketReciever(object):
     def __init__(self, conn):
+        """
+        Packet receiver.
+
+        :param conn: The socket connection.
+        """
+
         import socket
 
         self.conn: socket.socket = conn
 
     def recv(self):
-        length = self.conn.recv(32)
-        data = self.conn.recv(int(length))
+        length = self.conn.recv(8)
+        data = self.conn.recv(int.from_bytes(length, "big", signed=False))
 
-        return PackageDecoder(data).get_decoded()
+        return PacketDecoder(data).get_decoded()
+
+    def __repr__(self):
+        return f"<PacketReciever conn=<{self.conn.__class__.__name__} peername={repr(self.conn.getpeername())}>>"
 
 
-class PackageSystem(object):
+class PacketSystem(object):
     def __init__(self, conn):
         """
-        Package System for communicate with servers / clients
+        Packet System for communicate with servers / clients
+        Maximum size of a packet is 4294967296 Bytes, 4 Gigabytes. Calculated from the lengthByteSize attribute.
+        
+        **Note:** Don't change the lengthByteSize attribute, if you will change it frequently, That will cause problems
+        with different clients, with different lengthByteSize attributes.
 
-        :param conn:
+        :param conn: The socket connection.
         """
 
         import socket
 
         self.conn: socket.socket = conn
+        self.lengthByteSize = 8
 
     def send(self, o):
-        length, data = PackageEncoder(o).get_encoded()
+        """
+        Send a packet to the connection.
 
-        len_str = str(length)
+        :param o: The data to send.
+        :return:
+        """
 
-        for _ in range(32, len(len_str), -1):
-            len_str = "0" + len_str
+        length, data = PacketEncoder(o).get_encoded()
 
-        # print(len(len_str))
-        # print(len_str)
-
-        self.conn.send(len_str.encode())
+        self.conn.send(length.to_bytes(self.lengthByteSize, "big", signed=False))
         self.conn.send(data)
 
     def sendall(self, o):
-        length, data = PackageEncoder(o).get_encoded()
+        """
+        Send a packet to all connected clients.
 
-        len_str = str(length)
+        :param o:
+        :return:
+        """
 
-        for _ in range(32, len(len_str), -1):
-            len_str = "0" + len_str
+        if not issubclass(type(self.conn), socketserver.BaseRequestHandler):
+            raise Exception(f"the conn argument and attribute of {self.__class__.__name__}() "
+                            f"must be a subclass of socketserver.BaseRequestHandler")
 
-        # print(len(len_str))
-        # print(len_str)
+        length, data = PacketEncoder(o).get_encoded()
 
-        self.conn.sendall(len_str.encode())
+        self.conn.sendall(length.to_bytes(self.lengthByteSize, "big", signed=False))
         self.conn.sendall(data)
 
     def recv(self):
-        length = self.conn.recv(32)
-        data = self.conn.recv(int(length.decode()))
+        """
+        Recieve a packet from the socket.
 
-        return PackageDecoder(data).get_decoded()
+        :return:
+        """
+
+        length = self.conn.recv(self.lengthByteSize)
+        data = self.conn.recv(int.from_bytes(length, "big", signed=False))
+
+        return PacketDecoder(data).get_decoded()
 
 
-class CryptedPackageSystem(PackageSystem):
+class CryptedPacketSystem(PacketSystem):
     def __init__(self, conn):
-        super(CryptedPackageSystem, self).__init__(conn)
+        """
+        Crypted Packet System for communicate with servers / clients using the ARC4 encryption algorithm.
+        Maximum size of a packet is 4294967296 Bytes, 4 Gigabytes. Calculated from the lengthByteSize attribute.
+
+        **Note:** Don't change the lengthByteSize attribute, if you will change it frequently, That will cause problems
+        with different clients, with different lengthByteSize attributes.
+
+        :param conn: The socket connection.
+        """
+
+        super(CryptedPacketSystem, self).__init__(conn)
 
     @staticmethod
     def _encrypt(b, key):
+        """
+        Encryption for packets
+
+        :param b:
+        :param key:
+        :return:
+        """
+
+        # noinspection PyPackageRequirements
         from Crypto.Cipher import ARC4
 
         obj = ARC4.new(key.encode())
@@ -630,35 +712,29 @@ class CryptedPackageSystem(PackageSystem):
 
     @staticmethod
     def _decrypt(b, key):
+
+        # noinspection PyPackageRequirements
         from Crypto.Cipher import ARC4
 
         obj2 = ARC4.new(key.encode())
         return obj2.decrypt(b)
 
     def send_c(self, o, key):
-        _, data = PackageEncoder(o).get_encoded()
+        _, data = PacketEncoder(o).get_encoded()
         # print(value, key)
         data = self._encrypt(data, key)
         length = len(data)
 
-        len_str = str(length)
-
-        for _ in range(32, len(len_str), -1):
-            len_str = "0" + len_str
-
-        # print(len(len_str))
-        # print(len_str)
-
-        self.conn.send(len_str.encode())
+        self.conn.send(length.to_bytes(self.lengthByteSize, "big", signed=False))
         self.conn.send(data)
 
     def recv_c(self, key):
         try:
-            length = self.conn.recv(32)
-            data = self.conn.recv(int(length.decode()))
+            length = self.conn.recv(self.lengthByteSize)
+            data = self.conn.recv(int.from_bytes(length, "big", signed=False))
         except ValueError:
             return None
-        return PackageDecoder(self._decrypt(data, key)).get_decoded()
+        return PacketDecoder(self._decrypt(data, key)).get_decoded()
 
 
 class NetworkInfo(object):
@@ -710,11 +786,12 @@ class NetworkInfo(object):
         :returns: The internal / local IP address
         """
         import socket
-        ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2]
-                           if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)),
-                                                                 s.getsockname()[0], s.close()) for s in
-                                                                [socket.socket(socket.AF_INET,
-                                                                               socket.SOCK_DGRAM)]][0][1]]) if l][-1][0]
+        ip = [l_ for l_ in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2]
+                             if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)),
+                                                                   s.getsockname()[0], s.close()) for s in
+                                                                  [socket.socket(socket.AF_INET,
+                                                                                 socket.SOCK_DGRAM)]][0][1]]) if l_][
+            -1][0]
         return ip
 
     @staticmethod
@@ -824,22 +901,25 @@ class WindowsShares(object):
 
 
 if __name__ == '__main__':
-    # a_ = PackageSender(None, {"Hallo"})
+    # a_ = PacketSender(None, {"Hallo"})
     # a_.send()
 
+    # noinspection PyUnusedLocal
     def c_runner(conn, secret):
-        pak = PackageSystem(conn)
-        for i in range(3):
+        import os
+        pak = PacketSystem(conn)
+        for i in range(5):
             recieved = pak.recv()
             print(f"Recieved Type: {type(recieved)}")
             print(f"Recieved Data: {recieved}")
-        exit(0)
+        os.kill(os.getpid(), 0)
 
-
+    # noinspection PyUnusedLocal
     def s_runner(conn, secret):
         import random
+        import os
 
-        pak = PackageSystem(conn)
+        pak = PacketSystem(conn)
         for i in range(1):
             b = []
             for _ in range(16):
@@ -850,7 +930,10 @@ if __name__ == '__main__':
             pak.send(a)
             pak.send(b)
             pak.send(list(a))
-        exit(0)
+            pak.send(lambda: print("Hello World"))
+            pak.send(__import__)
+        # os.kill(os.getpid(), 0)
+
 
     print(f"NetworkInfo Test | Data value                                            ")
     print(f"_________________|_______________________________________________________")

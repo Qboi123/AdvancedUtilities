@@ -1,7 +1,7 @@
 import urllib.request
 
 from advUtils.code import HtmlCode
-from advUtils.miscellaneous import remove_duplicates
+from advUtils.miscellaneous import Utils
 
 
 class UbuntuRelease(object):
@@ -32,13 +32,14 @@ class UbuntuReleases(object):
         print(f"All http[s] links in {release} are {code2.find_all_links(http=True, https=True)}")
 
         isos_ = code2.find_links_by_regex("\\.iso$")
-        isos = remove_duplicates(isos_.copy())
+        isos = Utils.remove_duplicates(isos_.copy())
 
         r_isos = []
         import re
         for iso in isos:
             abc = re.search(
-                "((?:(?:.*)(?:-(?:.*)).*)|(?:.*))-((?:(?:\\d)*\\.\\d\\d\\.(?:\\d)*)|(?:(?:\\d)*\\.\\d\\d))-((?:(?:.*)(?:-(?:.*))*)|(?:.*))(?:-(.*))\\.iso",
+                "((?:(?:.*)(?:-(?:.*)).*)|(?:.*))-((?:(?:\\d)*\\.\\d\\d\\.(?:\\d)*)|(?:(?:\\d)*\\.\\d\\d))-((?:(?:.*)(?"
+                ":-(?:.*))*)|(?:.*))(?:-(.*))\\.iso",
                 iso)
             if abc is None:
                 continue

@@ -3,46 +3,48 @@ import typing as _t
 from overload import overload
 
 
-def diff(first: list, second: list) -> list:
-    """
-    Returns the items of first that are not in second
+class Utils:
+    @staticmethod
+    def diff(first: list, second: list) -> list:
+        """
+        Returns the items of first that are not in second
 
-    :param first:
-    :param second:
-    :return:
-    """
+        :param first:
+        :param second:
+        :return:
+        """
 
-    second = set(second)
-    return [item for item in first if item not in second]
+        second = set(second)
+        return [item for item in first if item not in second]
+
+    @staticmethod
+    def remove_duplicates(list_: list) -> list:
+        """
+        Remove duplicates from a list
+
+        Example
+        --------
+        >>> list_ = [0, 1, 2, 3, 3, 2, 4, 1]
+        >>> Utils.remove_duplicates(list_)
+        [0, 1, 2, 3, 4]
+
+        :param list_:
+        :return:
+        """
+
+        index = 0
+        already_defined = []
+        while index < len(list_):
+            if already_defined:
+                if list_[index] in already_defined:
+                    del list_[index]
+                    continue
+            already_defined.append(list_[index])
+            index += 1
+        return list_
 
 
-def remove_duplicates(list_: list) -> list:
-    """
-    Remove duplicates from a list
-
-    Example
-    --------
-    >>> list_ = [0, 1, 2, 3, 3, 2, 4, 1]
-    >>> remove_duplicates(list_)
-    [0, 1, 2, 3, 4]
-
-    :param list_:
-    :return:
-    """
-
-    index = 0
-    already_defined = []
-    while index < len(list_):
-        if already_defined:
-            if list_[index] in already_defined:
-                del list_[index]
-                continue
-        already_defined.append(list_[index])
-        index += 1
-    return list_
-
-
-class Color(object):
+class QColor(object):
     @overload
     def __init__(self, hex_: str):
         print(hex_)
@@ -73,15 +75,24 @@ class Color(object):
         if len(h) < 8:
             h = "0x" + ("0" * (8 - len(h))) + h[2:]
         self.__init__(h)
+        self.r = self.r
+        self.g = self.g
+        self.b = self.b
+        self.a = self.a
 
     @__init__.add
-    def __init__(self, r: int, g: int, b: int, a: _t.Optional[int] = None):
+    def __init__(self, r: int, g: int, b: int):
         self.r = r
         self.g = g
         self.b = b
         self.a = 255
-        if a is not None:
-            self.a = a
+
+    @__init__.add
+    def __init__(self, r: int, g: int, b: int, a: int):
+        self.r = r
+        self.g = g
+        self.b = b
+        self.a = a
 
     @__init__.add
     def __init__(self, r: float, g: float, b: float, a: _t.Optional[float] = None):
@@ -173,11 +184,11 @@ class Color(object):
     def from_hsv(cls, h, s, v):
         import colorsys
         r, g, b = colorsys.hsv_to_rgb(h / 360, s / 100, v / 100)
-        return Color(r, g, b)
+        return QColor(r, g, b)
 
 
-class Pixel(object):
-    def __init__(self, x, y, color: Color):
+class QPixel(object):
+    def __init__(self, x, y, color: QColor):
         self.x = x
         self.y = y
         self.color = color
@@ -187,3 +198,21 @@ class Pixel(object):
 
     def __repr__(self):
         return "<Pixel(%s, %s, color=<%s>)" % (self.x, self.y, self.color)
+
+
+class QCoordinate(object):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+
+def diff(first, second):
+    import warnings
+    warnings.warn("Call to deprecated function.", DeprecationWarning)
+    Utils.diff(first, second)
+
+
+def remove_duplicates(list_):
+    import warnings
+    warnings.warn("Call to deprecated function.", DeprecationWarning)
+    Utils.remove_duplicates(list_)

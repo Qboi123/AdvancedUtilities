@@ -1,22 +1,22 @@
-from abc import ABC, abstractmethod, abstractclassmethod
-from collections import namedtuple
+from abc import abstractmethod
 
-from advUtils.miscellaneous import diff
+from advUtils.core.decorators import log
+from advUtils.miscellaneous import Utils
 
 
 class Event(object):
     def __init__(self, func):
-        pass
+        self._func = func
 
     @classmethod
     @abstractmethod
-    def update(cls):
+    def mainloop(cls):
         pass
 
     @classmethod
     def start_thread(cls):
         import threading
-        _t = threading.Thread(target=cls.update)
+        _t = threading.Thread(target=cls.mainloop)
         _t.start()
         return _t
 
@@ -45,7 +45,7 @@ class FolderEvent(Event):
         super(FolderEvent, self).__init__(func)
 
     @classmethod
-    def update(cls, delay: float = 0.5):
+    def mainloop(cls, delay: float = 0.5):
         import time
         while True:
             a = FolderEvent.cache.copy()
@@ -56,8 +56,8 @@ class FolderEvent(Event):
                 if listdir != c_listdir and folder in b:
                     newlist = listdir
                     oldlist = c_listdir
-                    newitems = diff(newlist, oldlist)
-                    olditems = diff(oldlist, newlist)
+                    newitems = Utils.diff(newlist, oldlist)
+                    olditems = Utils.diff(oldlist, newlist)
                     func = FolderEvent.funcs[folder]
                     # print(func)
                     c = FolderEvent(func, folder, newitems, olditems)
@@ -73,14 +73,16 @@ class FolderEvent(Event):
     @classmethod
     def start_thread(cls, delay: float = 0.01):
         import threading
-        _t = threading.Thread(target=cls.update, args=(delay,))
+        _t = threading.Thread(target=cls.mainloop, args=(delay,))
         _t.start()
         return _t
 
     @classmethod
-    def bind(cls, func, folder):
-        cls.funcs[folder] = func
-        cls.cache[folder] = cls.os.listdir(folder)
+    def bind(cls, folder):
+        def decorator(func):
+            cls.funcs[folder] = func
+            cls.cache[folder] = cls.os.listdir(folder)
+        return decorator
 
     @classmethod
     def unbind(cls, folder):
@@ -89,18 +91,19 @@ class FolderEvent(Event):
 
 
 if __name__ == '__main__':
+    @log("Testing folder event.")
     def test_folderevent():
         import os
         import time
-        import tempfile
         from time import sleep
 
+        @FolderEvent.bind(rf"C:\Users\{os.getlogin()}")
         def event_handler(evt: FolderEvent):
             time2 = time.strftime('%d/%m/%Y %H:%M:%S', time.gmtime(time.time()))
             print(f"{time2} | New Items: {evt.newItems}") if evt.newItems else None
             print(f"{time2} | Old Items: {evt.oldItems}") if evt.oldItems else None
 
-        FolderEvent.bind(event_handler, tempfile.gettempdir())
+        # FolderEvent.bind(event_handler, )
         # FolderEvent.bind(event_handler, f"C:\\Users\\{os.getlogin()}\\Documents")
         t = FolderEvent.start_thread()
 

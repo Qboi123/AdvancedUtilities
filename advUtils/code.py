@@ -1,30 +1,17 @@
-from advUtils.miscellaneous import remove_duplicates
+from advUtils.core.decorators import experimental
+from advUtils.miscellaneous import Utils
 from advUtils.system import TTS
 
 
-class _Utils:
-    @staticmethod
-    def remove_duplicates(list_: list) -> list:
-        index = 0
-        already_defined = []
-        while index < len(list_):
-            if already_defined:
-                if list_[index] in already_defined:
-                    del list_[index]
-                    continue
-            already_defined.append(list_[index])
-            index += 1
-        return list_
-
-
-class PythonCode(object):
+class QPythonCode(object):
     def __init__(self, py_code):
         self._code = py_code
 
-    def import_code(self):
+    @experimental
+    def import_(self):
         pass
 
-    def execute_code(self, filename):
+    def execute(self, filename, loc=None, glob=None):
         """
         Execute code with the given filename
 
@@ -33,23 +20,37 @@ class PythonCode(object):
         Example 1:
 
         >>> code = 'print("Hello World")'
-        >>> pycode = PythonCode(code)
-        >>> pycode.execute_code("Test.py")
+        >>> pycode = QPythonCode(code)
+        >>> pycode.execute("Test.py")
 
         Example 2:
 
         >>> filename = "Test.py"  # Replace with your own filename you want to execute
         >>> with open(filename) as file:
         ...     code = file.read()
-        ...     pycode = PythonCode(code)
-        ...     pycode.execute_code(filename)
+        ...     pycode = QPythonCode(code)
+        ...     pycode.execute(filename)
 
+        :param loc:
+        :param glob:
         :param filename: The filename to use for the code execution
         :returns: The compiled code object
         """
 
+        if glob is None:
+            glob = {}
+        if loc is None:
+            loc = {}
+
+        glob = glob.copy()
+        loc = loc.copy()
         ccode = compile(self._code, filename, "exec")
-        exec(ccode)
+        exec(ccode, __globals=glob, __locals=loc)
+        return ccode, glob, loc
+
+    @experimental
+    def compile(self, filename, mode, optimize=2):
+        ccode = compile(self._code, filename, mode, optimize=optimize)
         return ccode
 
 
@@ -103,7 +104,8 @@ class HtmlCode(object):
         # Find with regex and return list of urls
         if h:
             if f:
-                return [url.get("href") for url in self.find_all('a', attrs={'href': re.compile(f"{h}|{f}")})]
+                # noinspection RegExpDuplicateAlternationBranch
+                return [url.get("href") for url in self.find_all('a', attrs={'href': re.compile(f"({h})|({f})")})]
             else:
                 return [url.get("href") for url in self.find_all('a', attrs={'href': re.compile(f"{h}")})]
         elif f:
@@ -150,7 +152,7 @@ if __name__ == '__main__':
 
         isos_ = code2.find_links_by_regex("\\.iso$")
         print(f"Before removing dups: {isos_}")
-        isos = remove_duplicates(isos_.copy())
+        isos = Utils.remove_duplicates(isos_.copy())
         print(f"After removing dups:  {isos}")
 
         print("\nThe 'isos' list have NONE duplicates" if isos == isos_ else "\nThe 'isos' list has duplicates")
@@ -162,7 +164,8 @@ if __name__ == '__main__':
                 print("")
                 print(f"Checking: {iso}")
                 abc = re.search(
-                    "((?:(?:.*)(?:-(?:.*)).*)|(?:.*))-((?:(?:\d)*\.\d\d\.(?:\d)*)|(?:(?:\d)*\.\d\d))-((?:(?:.*)(?:-(?:.*))*)|(?:.*))(?:-(.*))\\.iso",
+                    r"((?:(?:.*)(?:-(?:.*)).*)|(?:.*))-((?:(?:\d)*\.\d\d\.(?:\d)*)|(?:(?:\d)*\.\d\d))-((?:(?:.*)(?:-"
+                    r"(?:.*))*)|(?:.*))(?:-(.*))\\.iso",
                     iso)
                 print(abc.groups())
                 print(f"________________________________")
@@ -191,8 +194,8 @@ b = True
 if b:
     print(f"This is {a}")
 """
-        pycode = PythonCode(code)
-        pycode.execute_code("someTest.py")
+        pycode = QPythonCode(code)
+        pycode.execute("someTest.py")
 
 
     test_pycode()

@@ -1,28 +1,20 @@
-# Python modules.
 import io
 import struct
 import typing
-from typing import Any
 
-# 3rd party modules.
-import dill as dill
+import dill
 from overload import overload
-
-# Project modules.
-from advUtils.core.decorators import experimental
-from advUtils.system import Beep
 
 NoneType = type(None)
 
 
-@experimental
 class QPyDataFile(object):
     def __init__(self):
         pass
-    
+
     @staticmethod
     def _reduce_intdata(value: int):
-        byte_data = value.to_bytes(int(value.bit_length() / 8)+1, "big", signed=True)
+        byte_data = value.to_bytes(int(value.bit_length() / 8) + 1, "big", signed=True)
         return b"\x00\x00", len(byte_data), byte_data
 
     @staticmethod
@@ -44,7 +36,7 @@ class QPyDataFile(object):
     def _reduce_booldata(value: bool):
         byte_data = value.to_bytes(1, "big")
         return b"\x00\x02", len(byte_data), byte_data
-    
+
     def _reduce_listdata(self, value: list):
         list_io = io.BytesIO()
         list_io.seek(0)
@@ -66,6 +58,7 @@ class QPyDataFile(object):
             offset += 16
 
         for typeid, length, data in datas:
+            # item_io = io.BytesIO()
             # QPyDataFile().write(item_io, value)
 
             list_io.seek(offset)
@@ -91,7 +84,7 @@ class QPyDataFile(object):
 
         # Generate list data.
         listtable_offset = 16  # List-table offset.
-        itemoffset = 16*list_len+16  # Item offset
+        itemoffset = 16 * list_len + 16  # Item offset
         value = []  # Return value.
         for i in range(list_len):
             # Item Size
@@ -136,7 +129,7 @@ class QPyDataFile(object):
         # length = self.calculate_trailinglength(data, bytelength)
         trailingdata = b"\xff" * (16 - len(data) % 16)
         return trailingdata
-    
+
     def _reduce_dictdata(self, value: dict):
         # Create a bytes-io for the data.
         dict_io = io.BytesIO()
@@ -265,6 +258,7 @@ class QPyDataFile(object):
             offset += 16
 
         for typeid, length, data in datas:
+            # item_io = io.BytesIO()
             # QPyDataFile().write(item_io, value)
 
             tuple_io.seek(offset)
@@ -288,7 +282,7 @@ class QPyDataFile(object):
 
         # Generate list data.
         listtable_offset = 16  # List-table offset.
-        itemoffset = 16*tuple_len+16  # Item offset
+        itemoffset = 16 * tuple_len + 16  # Item offset
         value = []  # Return value.
         for i in range(tuple_len):
             # Item Size
@@ -375,7 +369,7 @@ class QPyDataFile(object):
     def _reduce_memoryview(value: memoryview):
         byte_data = value.tobytes()
         return b"\x00\x10", len(byte_data), byte_data
-    
+
     @staticmethod
     def _revert_memoryview(data: bytes):
         value = memoryview(data)
@@ -398,12 +392,12 @@ class QPyDataFile(object):
     def _revert_objectdata(data: bytes):
         value = dill.loads(data)
         return value
-    
+
     @staticmethod
     def _reduce_length(length: int):
         return length.to_bytes(16, "little")
-    
-    def write(self, stream: typing.Union[io.BytesIO, typing.BinaryIO], value: Any):
+
+    def dump(self, stream: typing.Union[io.BytesIO, typing.BinaryIO], value: typing.Any):
         # if type(value) is str:
         #     typeid, length, value = self._reduce_strdata(value)
         # elif type(value) is int:
@@ -414,7 +408,7 @@ class QPyDataFile(object):
         #     raise TypeError(f"Can't reduce {value.__class__.__name__}")
 
         typeid, length, data = self._reduce_data(value)
-        
+
         stream.seek(0)
         stream.write(b"\xffQPyData\xff")
         stream.seek(14)
@@ -473,7 +467,7 @@ class QPyDataFile(object):
         else:
             raise ValueError(f"Invalid type-id: {str(typeid)[2:-1]}")
 
-    def read(self, stream: typing.Union[io.BytesIO, typing.BinaryIO]):
+    def load(self, stream: typing.Union[io.BytesIO, typing.BinaryIO]):
         stream.seek(0)
         startbytes = stream.read(16)
         if not startbytes.startswith(b"\xffQPyData\xff"):
@@ -509,108 +503,44 @@ class QPyDataFile(object):
         #     raise ValueError(f"Invalid type-id: {str(typeid)[2:-1]}")
         return value
 
+    def loads(self, data: bytes) -> typing.Any:
+        """
+        Loads QPy Data into a Python object/type.
 
-if __name__ == '__main__':
-    # a = ["Hallo", 104].__reduce__()
+        :param data: The data to be loaded.
+        :return:
+        """
 
-    # l = ["Hallo", 104]
-    # length = len(l)
-    # a = "Hallo".__()
+        # Create a stream.
+        stream = io.BytesIO(data)
 
-    # print(a)
-    # print(type(a))
+        # Load the stream.
+        obj = self.load(stream)
 
-    def test2():
-        stream2 = io.BytesIO()
+        # Close the stream.
+        stream.close()
 
-        a = QPyDataFile()
-        a.write(stream2, "Hello World!")
-        stream2.seek(0)
-        # print(stream2.getbuffer().hex())
-        # print(stream2.read())
-        b = a.read(stream2)
-        print(repr(b))
+        # Return the object.
+        return obj
 
-    def test3():
-        stream2 = io.BytesIO()
+    def dumps(self, obj: typing.Any) -> bytes:
+        """
+        Dumps (almost) any type or object into a QPyData bytes object.
 
-        a = QPyDataFile()
-        a.write(stream2, eval("0x75893574895729685923795682759637269832756792875639849586893769285673846327984657832647"
-                              "9382658738563275836573265378562375863275963576357358563297593265758576598975698237496592"
-                              "3"))
-        stream2.seek(0)
-        # print(stream2.getbuffer().hex())
-        # print(stream2.read())
-        b = a.read(stream2)
-        print(repr(b))
+        :param obj: The object to be dumped.
+        :return:
+        """
 
-        a = QPyDataFile()
-        a.write(stream2,
-                772)
-        stream2.seek(0)
-        # print(stream2.getbuffer().hex())
-        # print(stream2.read())
-        b = a.read(stream2)
-        print(repr(b))
+        # Create a stream, and dump the object into it.
+        stream = io.BytesIO()
+        self.dump(stream, obj)
 
-        a = QPyDataFile()
-        a.write(stream2,
-                ["Hallo", "hoi", 30585, ["SomeList", "YetAnotherString", 404]])
-        stream2.seek(0)
-        # print(stream2.getbuffer().hex())
-        # print(stream2.read())
-        b = a.read(stream2)
-        print(repr(b))
+        # Get the full data.
+        stream.seek(0)
+        data = stream.read()
 
-        with open("test.qdat", "w+b") as file:
-            a = QPyDataFile()
-            dat = ["Hallo", "hoi", 87594566525.46274, 30585, ["SomeList", "YetAnotherString", 404],
-                   {"Key": "Value", "KeyInteger": 25565, 513: 512, ("Tuple1", "Tuple2"): 65536}, ("303", 303),
-                   range(10, 40, 23), None]
-            a.write(file,
-                    dat)
-            stream2.seek(0)
+        # Close the stream
+        stream.close()
 
-            # print("-*- END -*-")
-            # print(stream2.getbuffer().hex())
-            # print(stream2.read())
-
-            b = a.read(file)
-            assert b == dat
-            print(repr(b))
-
-        with open("test.qdat", "w+b") as file:
-            a = QPyDataFile()
-            dat = ["Hallo", "hoi", 87594566525.46274, 30585, ["SomeList", "YetAnotherString", 404],
-                   {"Key": "Value", "KeyInteger": 25565, 513: 512, ("Tuple1", "Tuple2"): 65536}, ("303", 303),
-                   range(10, 40, 23), lambda name: print(f"Hello {name}"), Beep]
-            a.write(file,
-                    dat)
-            stream2.seek(0)
-
-            # print("-*- END -*-")
-            # print(stream2.getbuffer().hex())
-            # print(stream2.read())
-
-            b = a.read(file)
-
-            # print(dat[-1])
-            # print(b[-1])
-            # assert b == dat
-            print(repr(b))
-
-    def test4():
-        value = 5749564653459465723658362853.56453268475328456372463
-
-        print(value)
-
-        data = struct.pack("f", value)
-        print(data)
-
-        out = struct.unpack("f", data)
-        print(out)
-
-    # test2()
-    test3()
-
-    # test4()
+        # Return the data.
+        return data
