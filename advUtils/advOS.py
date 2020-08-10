@@ -1,3 +1,5 @@
+import unittest
+
 from advUtils.miscellaneous import QColor as _Color
 
 
@@ -34,7 +36,8 @@ class QWindows10Options(object):
         return _Color("#" + accent)
 
 
-if __name__ == '__main__':
+class __Test(unittest.TestCase):
+    @staticmethod
     def test_win10options():
         _win10options = QWindows10Options()
         accent_color = _win10options.get_accentcolor()
@@ -56,7 +59,6 @@ if __name__ == '__main__':
         root.wm_geometry("400x300+20+20")
         frame = tk.Frame(root, bg=accent_color.to_colorhex(False))
         frame.pack(fill="both", expand=True)
-        root.mainloop()
-
-
-    test_win10options()
+        root.update()
+        root.update_idletasks()
+        # root.mainloop()

@@ -1,7 +1,9 @@
 # Internal python modules.
+import os
 import platform
 import tkinter as _tk
 import typing as _t
+import unittest
 from enum import Enum as _Enum
 
 # 3rd party modules.
@@ -211,14 +213,14 @@ class File(object):
         else:
             raise OSError(f"File {self.path} already opened")
 
-    def close(self):
+    def close(self, fd):
         """
         Closes the file
 
         :returns: Nothing
         """
 
-        self._fd.close()
+        fd.close()
         self._fileOpen = False
 
     def exists(self) -> bool:
@@ -240,13 +242,10 @@ class File(object):
         """
 
         file_was_open = self._fileOpen
-        if not self._fileOpen:
-            self.open(mode="rb")
+        fd = self.open(mode="rb")
 
-        data: bytes = self._fd.read(size)
-
-        if not file_was_open:
-            self.close()
+        data: bytes = fd.read(size)
+        self.close(fd)
 
         return data
 
@@ -258,14 +257,10 @@ class File(object):
         :returns: The string read from the file
         """
 
-        file_was_open = self._fileOpen
-        if not self._fileOpen:
-            self.open(mode="r")
+        fd = self.open(mode="r")
 
-        data = self._fd.read(size)
-
-        if not file_was_open:
-            self.close()
+        data = fd.read(size)
+        self.close(fd)
 
         return data
 
@@ -277,21 +272,25 @@ class File(object):
         :returns: Nothing, yes, nothing.
         """
 
+        fd = self.open("w+b")
+
         if type(data) == str:
             data: str
-            self._fd.write(data.encode())
+            fd.write(data.encode())
         elif type(data) in [bytes, bytearray]:
-            self._fd.write(data)
+            fd.write(data)
         elif type(data) in [int, float, bool]:
-            self._fd.write(str(data).encode())
+            fd.write(str(data).encode())
         elif type(data) in [dict, list]:
             import json
-            self._fd.write((json.JSONEncoder().encode(data)).encode())
+            fd.write((json.JSONEncoder().encode(data)).encode())
         elif type(data) in [tuple]:
             import json
-            self._fd.write((json.JSONEncoder().encode(list(data))).encode())
+            fd.write((json.JSONEncoder().encode(data)).encode())
         else:
-            self._fd.write(repr(data))
+            fd.write(repr(data))
+
+        self.close(fd)
 
     def write_lines(self, data: _t.Union[_t.List, _t.Tuple]) -> None:
         """
@@ -493,7 +492,7 @@ class ExecutableFile(File):
         :returns: Nothing
         """
 
-        self._subps.Popen(["cmd", "/k", "start", "", self.absPath, *args])
+        self._subps.Popen(["cmd", "/c", "start", "", self.absPath, *args])
 
 
 class PythonFile(File):
@@ -596,7 +595,7 @@ class JsonFile(File):
         if len(kwargs.keys()) != 0:
             raise ValueError("Method 'read()' doesn't take keyword arguments")
         data = self.readstring()
-        self._json.JSONDecoder().decode(data)
+        return self._json.JSONDecoder().decode(data)
 
     def write(self, o):
         """
@@ -606,8 +605,10 @@ class JsonFile(File):
         :return:
         """
 
-        json = self._json.JSONEncoder().encode(o)
-        self.write(json)
+        fd = self.open("w+")
+        json = self._json.JSONEncoder(indent=2).encode(o)
+        fd.write(json)
+        self.close(fd)
 
 
 class PickleFile(File):
@@ -634,7 +635,7 @@ class PickleFile(File):
         # if len(kwargs.keys()) != 0:
         #     raise ValueError("Method 'read()' doesn't take keyword arguments")
         data = super().read()
-        self._pickle.loads(data)
+        return self._pickle.loads(data)
 
     def write(self, o):
         """
@@ -672,7 +673,7 @@ class DillFile(File):
         # if len(kwargs.keys()) != 0:
         #     raise ValueError("Method 'read()' doesn't take keyword arguments")
         data = super().read()
-        self._dill.loads(data)
+        return self._dill.loads(data)
 
     def write(self, o):
         """
@@ -713,8 +714,10 @@ class YamlFile(File):
             raise ValueError("Method 'read()' doesn't take keyword arguments")
         data = super().readstring()
         stream = self._io.StringIO(data)
-        self._yaml.full_load(stream)
+        out = self._yaml.full_load(stream)
         stream.close()
+
+        return out
 
     def write(self, o):
         """
@@ -726,6 +729,7 @@ class YamlFile(File):
 
         stream = self._io.StringIO()
         self._yaml.dump(o, stream)
+        stream.seek(0)
         super().write(stream.read())
         stream.close()
 
@@ -1527,7 +1531,7 @@ class WindowsShortcut(File):
         shortcut.save()
 
 
-class WinSpecialFolders(_Enum):
+class WinSpecialFolders(object):
     if _shell is not None:
         if _shellcon is not None:
             Fonts = _shell.SHGetFolderPath(0, _shellcon.CSIDL_FONTS, 0, 0)
@@ -1587,7 +1591,9 @@ class WinSpecialFolders(_Enum):
 
 PickledFile = PickleFile
 
-if __name__ == '__main__':
+
+class __Test(unittest.TestCase):
+    @staticmethod
     def test_winspecialfolders():
         print(WinSpecialFolders.Profile)
         print(WinSpecialFolders.AppData)
@@ -1597,10 +1603,227 @@ if __name__ == '__main__':
 
         print(Directory("/").index(recursive=True, depth=2))
 
+    @staticmethod
+    def test_json_file():
+        file = JsonFile("../test/filesytem_jsonfile.json")
+
+        a = {
+            "Key": "Value",
+            "String": "abc",
+            "Integer": 123,
+            "Float": 123.456,
+            "Boolean": True,
+            "None": None,
+            "Dict": {
+                "String": "xyz",
+                "Integer": 987,
+                "Float": 987.654,
+                "Boolean": False,
+                "None": None,
+                "DictInADict": {"ABC": 123},
+                "ListInADict": ["ABC", 123]
+            },
+            "List": [
+                "xyz",
+                987,
+                987.654,
+                False,
+                None,
+                {"ABC": 123},
+                ["ABC", 123]
+            ]
+        }
+        print(a)
+        file.write(a)
+        b = file.read()
+        print(b)
+
+        assert a == b
+
+    @staticmethod
+    def test_pickle_file():
+        file = PickleFile("../test/filesytem_jsonfile.pik")
+
+        a = {
+            "Key": "Value",
+            "String": "abc",
+            "Integer": 123,
+            "Float": 123.456,
+            "Boolean": True,
+            "None": None,
+            "Dict": {
+                "String": "xyz",
+                "Integer": 987,
+                "Float": 987.654,
+                "Boolean": False,
+                "None": None,
+                "DictInADict": {"ABC": 123},
+                "ListInADict": ["ABC", 123]
+            },
+            "List": [
+                "xyz",
+                987,
+                987.654,
+                False,
+                None,
+                {"ABC": 123},
+                ["ABC", 123]
+            ]
+        }
+        print(a)
+        file.write(a)
+        b = file.read()
+        print(b)
+
+        assert a == b
+
+    @staticmethod
+    def test_dill_file():
+        file = DillFile("../test/filesytem_jsonfile.dill")
+
+        a = {
+            "Key": "Value",
+            "String": "abc",
+            "Integer": 123,
+            "Float": 123.456,
+            "Boolean": True,
+            "None": None,
+            "Dict": {
+                "String": "xyz",
+                "Integer": 987,
+                "Float": 987.654,
+                "Boolean": False,
+                "None": None,
+                "DictInADict": {"ABC": 123},
+                "ListInADict": ["ABC", 123]
+            },
+            "List": [
+                "xyz",
+                987,
+                987.654,
+                False,
+                None,
+                {"ABC": 123},
+                ["ABC", 123]
+            ]
+        }
+        print(a)
+        file.write(a)
+        b = file.read()
+        print(b)
+
+        assert a == b
+
+    @staticmethod
+    def test_nzt_file():
+        file = NZTFile("../test/filesytem_jsonfile.nzt", "w")
+
+        a = {
+            "Key": "Value",
+            "String": "abc",
+            "Integer": 123,
+            "Float": 123.456,
+            "Boolean": True,
+            "None": None,
+            "Dict": {
+                "String": "xyz",
+                "Integer": 987,
+                "Float": 987.654,
+                "Boolean": False,
+                "None": None,
+                "DictInADict": {"ABC": 123},
+                "ListInADict": ["ABC", 123]
+            },
+            "List": [
+                "xyz",
+                987,
+                987.654,
+                False,
+                None,
+                {"ABC": 123},
+                ["ABC", 123]
+            ]
+        }
+        print(a)
+        file.data = a
+        file.save()
+        file.close()
+
+        file = NZTFile("../test/filesytem_jsonfile.nzt", "r")
+        b = file.load()
+        file.close()
+        print(b)
+
+        assert a == b
+
+    @staticmethod
+    def test_yaml_file():
+        file = YamlFile("../test/filesytem_jsonfile.yaml")
+
+        a = {
+            "Key": "Value",
+            "String": "abc",
+            "Integer": 123,
+            "Float": 123.456,
+            "Boolean": True,
+            "None": None,
+            "Dict": {
+                "String": "xyz",
+                "Integer": 987,
+                "Float": 987.654,
+                "Boolean": False,
+                "None": None,
+                "DictInADict": {"ABC": 123},
+                "ListInADict": ["ABC", 123]
+            },
+            "List": [
+                "xyz",
+                987,
+                987.654,
+                False,
+                None,
+                {"ABC": 123},
+                ["ABC", 123]
+            ]
+        }
+        print(a)
+        file.write(a)
+        b = file.read()
+        print(b)
+
+        assert a == b
+
+    @staticmethod
+    def test_toml_file():
+        file = TomlFile("../test/filesytem_jsonfile.toml")
+
+        a = {
+            "Key": "Value",
+            "String": "abc",
+            "Integer": 123,
+            "Float": 123.456,
+            "Boolean": True,
+            "Dict": {
+                "String": "xyz",
+                "Integer": 987,
+                "Float": 987.654,
+                "Boolean": False,
+                "DictInADict": {"ABC": 123}
+            }
+        }
+        print(a)
+        file.write(a)
+        b = file.read()
+        print(b)
+
+        assert a == b
+
+    @staticmethod
     def test_winexecutable():
         import os as _os
         ExecutableFile(
-            "C:/Windows/notepad.exe"
-        ).start(_os.path.join(str(WinSpecialFolders.Desktop), "TestDocument.txt"))
+            "C:/Windows/System32/cmd.exe"
+        ).execute("/c", 'echo Hello World!')
 
-    test_winexecutable()
+    if not os.path.exists("../test/"):
+        os.makedirs("../test/")

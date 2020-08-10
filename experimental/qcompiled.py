@@ -78,12 +78,66 @@ class QCompiled(object):
                 continue
 
             if opcode == bytes([OPCODE_SETX]):
-                ram_addr = self.advance(4)
+                ram_addr = self.advance(8)
                 # noinspection PyUnusedLocal
-                alloc_size = self.advance(4)
+                alloc_size = self.advance(8)
 
                 self.ram.writeat(ram_addr, )
 
     def advance(self, size=1):
         self.index += size
         return self.read()
+
+
+class Compiler(object):
+    def __init__(self, data: str):
+        self._data = data
+
+    def calculate_indent(self, line):
+        before = line
+        after = before.lstrip(" ")
+
+
+    def compile(self):
+        code = self._data
+
+        lines = code.splitlines(False)
+
+        indents = 0
+        prevous_indent = 0
+        current_indent = 0
+        current_indent_flag = False
+
+        i = 1
+
+        for line in lines:
+            current_indent = self.calculate_indent(line)
+            if current_indent != prevous_indent:
+                if current_indent > prevous_indent:
+                    if not current_indent_flag:
+                        raise SyntaxError(f"Invalid indent at line: {i}")
+            if current_indent_flag:
+                current_indent_flag = False
+
+            # Pre pare for next line.
+            prevous_indent = current_indent
+
+            if line.endswith(":"):
+                current_indent_flag = True
+                indents += 1
+
+            i += 1
+
+
+def compile(pathin: str, pathout: str):
+    with open(pathin, "r") as file:
+        data: str = file.read()
+
+        # Fix line endings.
+        data = data.replace("\r\n", "\n").replace("\r", "\n")
+
+        compiler = Compiler(data)
+
+        with open(pathout, "wb+") as file_out:
+            output = compiler.compile()
+            file_out.write(output)

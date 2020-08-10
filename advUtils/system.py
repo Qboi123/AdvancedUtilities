@@ -1,5 +1,6 @@
 # from __future__ import print_function
 import platform
+import unittest
 from ctypes import windll
 from threading import Thread, Event
 
@@ -350,8 +351,8 @@ class TTS(object):
         Example
         --------
         >>> tts = TTS("en")
-        >>> tts_.speak("This is a test message")
-        >>> tts_.pspeak("This is a printed test message")
+        >>> tts.speak("This is a test message")
+        >>> tts.pspeak("This is a printed test message")
         This is a printed test message
 
         :param language: The language code for the speech
@@ -429,13 +430,23 @@ class PowerControl(object):
             raise PlatformNotSupportedError("Only supported on Windows")
 
 
-if __name__ == '__main__':
-    tts_ = TTS("en")
-
+class Test(unittest.TestCase):
+    @staticmethod
     def test_tts():
+        tts_ = TTS("en", False)
         tts_.speak("Test text, with single quotes")
         tts_.speak("""Test text, with triple quotes""")
 
+    @staticmethod
+    def test_translate():
+        trans = Translate("en", "nl")
+        print(trans.translate("Hello, i'm the craziest of the craziens!"))
+
+        transjp = Translate("en", "hi")
+        print(transjp.translate("Hello, i'm the craziest of the idiots!"))
+
+
+if __name__ == '__main__':
     def test_window_class():
         from tkinter import Tk
         import time
@@ -476,7 +487,7 @@ if __name__ == '__main__':
             print('Time: %s' % event.Time)
             print('Window: %s' % event.Window)
             print('WindowName: %s' % event.WindowName)
-            print('Ascii: %s' % event.Ascii, "A"+chr(event.Ascii))
+            print('Ascii: %s' % event.Ascii, "A" + chr(event.Ascii))
             print('Key: %s' % event.Key)
             print('KeyID: %s' % event.KeyID)
             print('ScanCode: %s' % event.ScanCode)
@@ -508,12 +519,7 @@ if __name__ == '__main__':
 
         # print(type(window.win32con.VK_RIGHT))
 
-    def test_translate():
-        trans = Translate("en", "nl")
-        print(trans.translate("Hello, i'm the craziest of the craziens!"))
-
-        transjp = Translate("en", "hi")
-        print(transjp.translate("Hello, i'm the craziest of the idiots!"))
+    # tts_ = TTS("en")
 
     # for i in range(80, 800, 20):
     #     Beep(i, 1500)
@@ -521,4 +527,5 @@ if __name__ == '__main__':
     #     Beep(2400, 1200)
 
     # test_window_class()
-    test_translate()
+
+    # test_tts()

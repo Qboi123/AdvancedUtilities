@@ -1,6 +1,7 @@
 import random
 import string
 import time
+import unittest
 from warnings import warn
 
 
@@ -92,7 +93,8 @@ class QFastRandom(object):
         return (self.seed >> 16) & 0x7FFF
 
 
-if __name__ == '__main__':
+class __Test(unittest.TestCase):
+    @staticmethod
     def test_advrandom():
         a = QRandom(65535)
         print(f"Random bytes : {a.randbytes(1, range(15, 255, 16))}")
@@ -118,7 +120,7 @@ if __name__ == '__main__':
         s_randf = ttk.Style()
         s_randf.theme_use("default")
 
-        max_seed_number_randf = 16  # Standard: 1024
+        max_seed_number_randf = 1024  # Standard: 1024
         max_tries_randf = 16  # 65536  # Standard: 16
 
         highest_randf = -1.0
@@ -166,6 +168,7 @@ if __name__ == '__main__':
         print("")
         print("Testing FastRandom(seed=...)")
 
+    @staticmethod
     def test_fastrandom():
         from tkinter import ttk
         import tkinter as tk
@@ -221,8 +224,6 @@ if __name__ == '__main__':
                 fast_rand_root.update()
         fast_rand_root.mainloop()
 
-    test_fastrandom()
-
 
 # Internal random.
 _internal_random = QRandom()
@@ -262,6 +263,6 @@ qsetstate = _internal_random.setstate
 qgetstate = _internal_random.getstate
 
 # Others
-qjumpahead = _internal_random.jumpahead
+# qjumpahead = _internal_random.jumpahead  # INVALID
 qgauss = _internal_random.gauss
 qgetrandbits = _internal_random.getrandbits

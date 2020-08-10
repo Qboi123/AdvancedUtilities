@@ -4,7 +4,7 @@ from advUtils.core.decorators import log
 from advUtils.miscellaneous import Utils
 
 
-class Event(object):
+class QEvent(object):
     def __init__(self, func):
         self._func = func
 
@@ -31,7 +31,7 @@ class Event(object):
         pass
 
 
-class FolderEvent(Event):
+class QFolderEvent(QEvent):
     funcs = {}
     cache = {}
 
@@ -42,27 +42,27 @@ class FolderEvent(Event):
         self.newItems = new
         self.oldItems = old
         # print(self)
-        super(FolderEvent, self).__init__(func)
+        super(QFolderEvent, self).__init__(func)
 
     @classmethod
     def mainloop(cls, delay: float = 0.5):
         import time
         while True:
-            a = FolderEvent.cache.copy()
+            a = QFolderEvent.cache.copy()
             for folder, c_listdir in a.items():
                 # print(folder)
-                listdir = FolderEvent.os.listdir(folder)
-                b = FolderEvent.funcs.keys()
+                listdir = QFolderEvent.os.listdir(folder)
+                b = QFolderEvent.funcs.keys()
                 if listdir != c_listdir and folder in b:
                     newlist = listdir
                     oldlist = c_listdir
                     newitems = Utils.diff(newlist, oldlist)
                     olditems = Utils.diff(oldlist, newlist)
-                    func = FolderEvent.funcs[folder]
+                    func = QFolderEvent.funcs[folder]
                     # print(func)
-                    c = FolderEvent(func, folder, newitems, olditems)
+                    c = QFolderEvent(func, folder, newitems, olditems)
                     # print(c)
-                    FolderEvent.funcs[folder](c)
+                    QFolderEvent.funcs[folder](c)
                     del newlist, oldlist, newitems, olditems, func, c
 
                 cls.cache[folder] = listdir
@@ -97,15 +97,15 @@ if __name__ == '__main__':
         import time
         from time import sleep
 
-        @FolderEvent.bind(rf"C:\Users\{os.getlogin()}")
-        def event_handler(evt: FolderEvent):
+        @QFolderEvent.bind(rf"C:\Users\{os.getlogin()}")
+        def event_handler(evt: QFolderEvent):
             time2 = time.strftime('%d/%m/%Y %H:%M:%S', time.gmtime(time.time()))
             print(f"{time2} | New Items: {evt.newItems}") if evt.newItems else None
             print(f"{time2} | Old Items: {evt.oldItems}") if evt.oldItems else None
 
         # FolderEvent.bind(event_handler, )
         # FolderEvent.bind(event_handler, f"C:\\Users\\{os.getlogin()}\\Documents")
-        t = FolderEvent.start_thread()
+        t = QFolderEvent.start_thread()
 
         while t.is_alive():
             sleep(1)

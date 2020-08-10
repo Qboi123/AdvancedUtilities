@@ -1,10 +1,12 @@
+import os
 import time
+import unittest
 
-if __name__ == '__main__':
-    import os
 
+class Test(unittest.TestCase):
     a = {"List": ["512", 512, True, None, {"512": 512}]}
 
+    @staticmethod
     def testdill():
         import dill
 
@@ -23,6 +25,7 @@ if __name__ == '__main__':
         print(f"Dill File Size:   {os.path.getsize('filetest.dill')}")
         print(f"Dill File Speed:  {end - start}")
 
+    @staticmethod
     def testpickle():
         import pickle
 
@@ -40,6 +43,7 @@ if __name__ == '__main__':
         print(f"Pickle File Size: {os.path.getsize('filetest.pik')}")
         print(f"Pickle File Speed:{end - start}")
 
+    @staticmethod
     def testnzt():
         from advUtils.filesystem import NZT2File
 
@@ -61,6 +65,7 @@ if __name__ == '__main__':
         print(f"NZT File Size:    {os.path.getsize('filetest.nzt')}")
         print(f"NZT File Speed:   {end - start}")
 
+    @staticmethod
     def testqpydata():
         from experimental.qpydata import QPyDataFile
 
@@ -81,6 +86,7 @@ if __name__ == '__main__':
         print(f"QPyDataFile Size: {os.path.getsize('filetest.qdat')}")
         print(f"QPyDataFile Speed:{end - start}")
 
+    @staticmethod
     def testyml():
         import yaml
 
@@ -99,6 +105,7 @@ if __name__ == '__main__':
         print(f"Yaml File Size:   {os.path.getsize('filetest.yml')}")
         print(f"Yaml File Speed:  {end - start}")
 
+    @staticmethod
     def testjson():
         import json
 
@@ -116,10 +123,3 @@ if __name__ == '__main__':
 
         print(f"Json File Size:   {os.path.getsize('filetest.json')}")
         print(f"Json File Speed:  {end - start}")
-
-    testdill()
-    testpickle()
-    testnzt()
-    testqpydata()
-    testyml()
-    testjson()

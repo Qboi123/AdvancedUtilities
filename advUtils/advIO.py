@@ -1,37 +1,96 @@
 import pickle
+import struct
 import urllib.request
-# noinspection PyProtectedMember
-from io import TextIOBase, RawIOBase, BytesIO, _bytearray_like
-from typing import Optional as _Optional, Any as _Any, List as _List
 from http.client import HTTPResponse
+# noinspection PyProtectedMember
+from io import RawIOBase, BytesIO, _bytearray_like
+from typing import Optional as _Optional, Any as _Any, List as _List
 
 import dill
 
 
-class IntegerIO(TextIOBase):
+class IntegerIO(BytesIO):
     def __init__(self, initial_value=0):
         super(IntegerIO, self).__init__()
         self.write(initial_value)
 
     # noinspection PyTypeChecker
-    def read(self, size=None) -> int:
+    def read(self, size: int = None, index: int = 0) -> int:
         if size is not None:
             raise ValueError("argument 'size' must be a NoneType object")
-        int(super(IntegerIO, self).read())
+        if index < 0:
+            raise ValueError("argument 'index' must be a non-negative integer")
+        if not isinstance(index, int):
+            raise TypeError("argument 'index' must be an integer")
 
-    def write(self, value: int) -> None:
-        super(IntegerIO, self).write(str(value))
+        super(IntegerIO, self).seek(index * 1024)
+        int.from_bytes(super(IntegerIO, self).read(1024), "little")
+
+    def write(self, value: int, index=0) -> None:
+        if index < 0:
+            raise ValueError("argument 'index' must be a non-negative integer")
+        if not isinstance(index, int):
+            raise TypeError("argument 'index' must be an integer")
+
+        super(IntegerIO, self).seek(index * 1024)
+        super(IntegerIO, self).write(int.to_bytes(value, 1024, "little"))
 
 
-class BooleanIO(RawIOBase):
+class FloatIO(BytesIO):
+    def __init__(self, initial_value=0):
+        super(FloatIO, self).__init__()
+        self.write(initial_value)
+
+    # noinspection PyTypeChecker
+    def read(self, size=None, index=0) -> int:
+        if size is not None:
+            raise ValueError("argument 'size' must be a NoneType object")
+        if index < 0:
+            raise ValueError("argument 'index' must be a non-negative integer")
+        if not isinstance(index, int):
+            raise TypeError("argument 'index' must be an integer")
+
+        super(FloatIO, self).seek(index * 1024)
+        size = int.from_bytes(super(FloatIO, self).read(4), "little")
+        struct.unpack("f", super(FloatIO, self).read(size))
+
+    def write(self, value: float, index=0) -> None:
+        """
+        Writes a float in the io stream at the given index.
+        The offset is based on the index specified, calculated by ``{index} * 1024``.
+
+        :param float value: The value to write to the stream.
+        :param int index: The index to write the value to.
+        :raises ValueError: If the index is a non-negative integer.
+        :raises TypeError: If the index is not an integer.
+        :raises OverflowError: If the float value is too large to fit in 1020 bytes.
+        :return:
+        """
+
+        if index < 0:
+            raise ValueError("argument 'index' must be a non-negative integer")
+        if not isinstance(index, int):
+            raise TypeError("argument 'index' must be an integer")
+
+        data = struct.pack("f", value)
+        if len(data) >= 1020:
+            raise OverflowError("Float value too large to fit in 1020 bytes: {}".format(value))
+        size = len(data)
+        super(FloatIO, self).seek(index * 1024)
+        super(FloatIO, self).write(int.to_bytes(size, 4, "little"))
+        super(FloatIO, self).seek((index * 1024) + 4)
+        super(FloatIO, self).write(data)
+
+
+class BooleanIO(BytesIO):
     def __init__(self, initial_value=False):
         super(BooleanIO, self).__init__()
         self.write(initial_value)
 
-    # noinspection PyTypeChecker
-    def read(self, size=None) -> _Optional[bool]:
+    def read(self, size=None, id_=0) -> _Optional[bool]:
         if size is not None:
             raise ValueError("argument 'size' must be a NoneType object")
+        super(BooleanIO, self).seek(id_)
         byte = super(BooleanIO, self).read()
         if byte == b"\1":
             return True
@@ -40,7 +99,8 @@ class BooleanIO(RawIOBase):
         else:
             return None
 
-    def write(self, value: bool) -> None:
+    def write(self, value: bool, id_=0) -> None:
+        super(BooleanIO, self).seek(id_)
         super(BooleanIO, self).write(b"\0" if value is False else b"\1" if value is True else b"\f")
 
 

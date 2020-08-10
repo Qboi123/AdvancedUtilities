@@ -5,7 +5,7 @@ import requests
 API_KEY = None
 
 
-class TempKelvin(object):
+class QTempKelvin(object):
     def __init__(self, kelvin):
         self._temp = kelvin
 
@@ -19,7 +19,7 @@ class TempKelvin(object):
         return self._temp * 9 / 5 - 459.67
 
 
-class TempCelsius(object):
+class QTempCelsius(object):
     def __init__(self, kelvin):
         self._temp = kelvin
 
@@ -33,7 +33,7 @@ class TempCelsius(object):
         return self._temp * 9 / 5 + 32
 
 
-class TempFahrenheit(object):
+class QTempFahrenheit(object):
     def __init__(self, kelvin):
         self._temp = kelvin
 
@@ -84,7 +84,7 @@ if x["cod"] != "404":
 
     # store the value corresponding
     # to the "temp" key of y
-    current_temperature = TempKelvin(y["temp"])
+    current_temperature = QTempKelvin(y["temp"])
 
     # store the value corresponding
     # to the "pressure" key of y
